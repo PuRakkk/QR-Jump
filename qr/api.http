@@ -1,0 +1,23 @@
+GET http://127.0.0.1:8000/api/branches/ HTTP/1.1
+Authorization: Token c592ec73761d89351d9ea7ae6df5fa51de1a4990
+
+###
+POST http://127.0.0.1:8000/api/companies/ HTTP/1.1
+Content-Content-Type: application/json
+
+{
+    "com_name": "Company1",
+    "telegram_id": 123456789,
+    "telegram_username": "company1"
+}
+
+
+###
+
+POST http://127.0.0.1:8000/api/token/ HTTP/1.1
+Content-Type: application/json
+
+{
+    "username":"Test",
+    "password":"test987$$"
+}

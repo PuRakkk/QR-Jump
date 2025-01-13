@@ -1,0 +1,959 @@
+.container {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 24px;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: 700px;
+    max-width: 500px;
+    text-align: center;
+    background-image: url("../images/last-tg-bg.png");
+}
+
+.tx_container {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 24px;
+    background-image: url("../images/last-tg-bg.png");
+    padding-left: 20px;
+    padding-bottom: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: 690px;
+    max-width: 500px;
+    text-align: center;
+}
+
+.confirm_transaction_container{
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 24px;
+    background-image: url("../images/last-tg-bg.png");
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: 690px;
+    max-width: 500px;
+    text-align: center;
+}
+.transaction-history-container {
+    margin: 20px;
+    color: #333;
+    font-size: 16px;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); 
+    width: 90%;
+    max-width: 600;
+    text-align: center;
+    overflow: hidden;
+}
+.qr-code-container {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 24px;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: 700px;
+    max-width: 500px;
+    text-align: center;
+    background-image: url("../images/last-tg-bg.png");
+
+}
+
+.create-pin-container{
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 24px;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: 700px;
+    max-width: 500px;   
+    background-color: white;
+    align-items: center;
+}
+
+h1 {
+    color: rgb(0, 0, 0);
+    display: block;
+    font-size: 2em;
+    margin-top: 10px;
+    margin-bottom: 10px;    
+    font-weight: bold;
+    unicode-bidi: isolate;
+}
+
+.h1-index{
+    color: rgb(255, 255, 255);
+    display: block;
+    font-size: 2em;
+    margin-top: 25px;
+    margin-bottom: 50px;    
+    font-weight: bold;
+    unicode-bidi: isolate;
+}
+
+.h1-confirm-transaction{
+        color: black;
+        display: block;
+        font-size: 22px;
+        margin-top: 25px;
+        margin-bottom: 30px;    
+        font-weight: bold;
+        unicode-bidi: isolate;
+}
+
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f7f7f7;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+.container input {
+    margin-top: 20px;
+    width: 94%;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1.5rem;
+    text-align: center;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2)   
+}
+.clear-btn{
+    background-color: red;
+    color: white;
+    font-size: 24px;
+    border-radius: 5px;
+    border: none;
+}
+.clear-btn:hover{
+    background-color: rgb(167, 0, 0);
+}
+
+.paynow-btn{
+    padding: 15px;
+    background-color: #27ae60;
+    color: rgb(255, 255, 255);
+    border: none;
+    border-radius: 5px;
+    font-size: 24px;
+    cursor: pointer;
+    height: 82px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2)
+}
+.paynow-btn:hover{
+    background-color: #27ae60;
+}
+
+.numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 60px;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.numpad_tx {
+    display: grid;
+    width: 96%;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, auto);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+
+.numpadclear_tx-btn {
+    height: 82px;
+    grid-column: span 1; /* Takes up 2 rows */
+}
+
+.paynow-btn {
+    grid-column: span 2; /* Takes up 2 rows */
+}
+
+.numpad_tx-btn {
+    padding: 15px;
+    background-color: #edebe9;
+    color: rgb(0, 0, 0);
+    border: none;
+    border-radius: 5px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    height: 82px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2)
+}
+
+
+.numpad-btn {
+    padding: 15px;
+    background-color: #edebe9;
+    color: rgb(0, 0, 0);
+    border: none;
+    border-radius: 5px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    height: 100px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.numpad-btn:hover {
+    background-color: #2980b9;
+}
+
+.numpad_tx-btn:hover {
+    background-color: #2980b9;
+}
+
+.bank-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    height: 100px;
+    width: 100px;
+    padding: 0px;
+    border-color: black;
+    border-radius: 5px;
+}
+
+/* Go button styling */
+.go-btn {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.go-btn:hover {
+    background-color: #27ae60;
+}
+
+.clear-index-btn{
+    background-color: red;
+    color: white;
+}
+.clear-index-btn:hover{
+    background-color: rgb(151, 10, 10);
+}
+
+/*New */
+p{
+    font-size: small;
+}
+
+.logout-btn {
+    margin-top: 30px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    width: 105px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2)
+
+}
+
+.logout-btn:hover {
+    background-color: rgb(151, 10, 10);
+}
+
+.history-btn {
+    grid-column: 4;
+    margin-top: 30px;
+    margin-bottom: 5px;
+    width: 105px;
+    align-items: center;
+    justify-content: right;
+    background-color: #058bd3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    display: inline-block;
+
+}
+
+.history-btn:hover {
+    background-color: #065168;
+}
+
+.logout-history{
+    margin-top: -20px;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    padding-top: 0px;
+    width: 100%;
+}
+
+.input-usd-amount {
+    width: 90%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    text-align: left;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.input-khr-amount {
+    width: 90%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    text-align: left;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.input-usd {
+    display: grid;
+    border: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+
+.input-khr {
+    display: grid;
+    border: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: transparent;
+}
+
+
+.currency-amount{
+    display: grid;
+    grid-template-columns: 1fr 5fr;    
+    column-gap: 0%;
+    margin-top: 0px;
+    margin-bottom: 15px;
+}
+
+.details{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 15px;
+    max-width: 100%;
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #b3deff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+}
+
+.format {
+    font-size: 20px;
+    color: #006aff;
+    font-weight: bold;
+    text-align: center;
+}
+
+.format-value {
+    font-size: 16px;
+    color: rgb(0, 0, 0);
+    font-weight: normal;
+    text-align: center;
+    font-weight: bold;
+}
+
+#datetime {
+    font-size: 18px;
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+
+}
+
+.cancel-btn-class{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 15px;
+    padding: 20px;
+    border-radius: 10px;
+    font-family: Arial, sans-serif;
+}
+
+.cancel-btn {
+    background-color: red;
+    color: white;
+    font-size: 24px;
+    height: 70px;
+    width: 100%; 
+    border-radius: 5px;
+    border: none;
+    grid-column: span 3;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    padding: 10px 0;
+    text-align: center;
+}
+.cancel-btn:hover{
+    background-color: rgb(151, 10, 10);
+}
+
+.cancel-btn {
+    grid-column: span 3; 
+}
+
+.bank-type {
+    display: grid;
+    padding-bottom: 25px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px 15px;
+    max-width: 100%;
+    margin: 20px;
+    background-color: #b3deff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+}
+.bank-label {
+    color: rgb(0, 0, 0);
+    padding-left: 10px;
+    text-align: left;
+    font-size: 22px;
+    grid-column: span 4;
+}
+.bank-btn {
+    background-color: #b3deff; 
+    width: 100%;
+    border: none; 
+    border-radius: 10px; 
+    padding: 10px; 
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+
+.bank-btn:hover {
+    background-color: #76cff6; 
+}
+
+
+#qr-code-container {
+    margin: 0;
+    padding: 40px;
+    background-size: cover;
+    height: 700px;
+    background-position: center;
+    text-align: center; 
+    color: #fff;
+    font-family: Arial, sans-serif;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-image: url("../images/last-tg-bg.png");
+}
+
+.qr-title {
+    font-size: 36px;
+    font-weight: bold;
+    margin-top: 80px;
+    margin-bottom: 0px;
+    color: #fff;
+}
+
+#qr-code-image{
+    margin-top: 50px;
+}
+
+.qr-description {
+    font-size: 18px;
+    margin-bottom: 40px;
+    color: #fff;
+}
+
+#qr-code img {
+    max-width: 300px;
+    height: auto;
+    border-radius: 10px;
+}
+
+.qr-close-btn {
+    margin-top: 30px; 
+    padding: 10px 20px;
+    width: 120px;
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.qr-close-btn:hover {
+    background-color: rgb(167, 0, 0);
+}
+
+#user-info-index{
+    margin-top: 70px;
+    color: #000000;
+    font-size: 13px;
+    text-align: left;
+    font-weight: bold;
+}
+
+#user-info-transaction{
+    margin-top: 70px;
+    margin-bottom: 0px;
+    color: #000000;
+    font-size: 13px;
+    text-align: left;
+    font-weight: bold;
+}
+.username_timestamp{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 15px;
+    max-width: 100%;
+    font-family: Arial, sans-serif;
+}
+.time-stamp-transaction{
+    margin-top: 70px;
+    color: #ff0000;
+    padding-left: 52px;
+    font-size: 14px;
+    text-align: center;
+    font-weight: bold;
+    justify-content: right;
+}
+
+.time-stamp{
+    margin-top: 70px;
+    color: #ff0000;
+    padding-left: 98px;
+    font-size: 14px;
+    text-align: center;
+    font-weight: bold;
+    justify-content: right;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #ffffff;
+}
+
+.transaction-history-container {
+    margin: 10px auto;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    max-height: 700px;
+    overflow-y: auto;
+    position: relative; /* Required for the positioning of the button */
+}
+
+.transaction-history-container h1 {
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.close-history-btn {
+    position: left;
+    padding: 10px 20px; 
+    background-color: red;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    z-index: 2;
+}
+
+.back-btn-his-text {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    justify-items: center; 
+    align-items: center;  
+    position: fixed; 
+    left: 50%;  
+    transform: translateX(-50%);  
+    top: 0;
+    background-color: #fff;
+    border-radius: 10px;
+    width: 100%;  
+    height: 40px;
+    padding: 10px 0;
+    z-index: 10; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+}
+.close-history-btn:hover {
+    background-color: rgb(167, 0, 0); 
+}
+
+.close-history-btn:focus {
+    outline: none;
+}
+
+.table-wrapper {
+    margin-top: 60px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 100px;
+}
+
+thead {
+    display: none;
+}
+
+tbody tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: #d39999;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    justify-content: space-between; /* Ensure spacing between elements */
+}
+
+tbody tr td {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 10px;
+    word-wrap: break-word;
+    color: rgb(0, 0, 0);
+}
+
+tbody tr td:before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: black;
+}
+
+p {
+    text-align: center;
+    color: #000000;
+}
+
+p.error {
+    color: red;
+    font-weight: bold;
+}
+
+#user-info-create-pin-page{
+    text-align: Center;
+    margin-top: 50px;
+    padding-top: 40px;
+    color: #006aff;
+    font-size: 14px;
+}
+.title-create-pin{
+    font-size: 14px;
+    color: #006aff;
+    text-align: center;
+    margin-top: 10px;
+    padding-top: 30px;
+}
+
+.create-pin-input{
+    margin-top: 20px;
+    width: 94%;
+    height: 15px;
+    padding: 15px;
+    border: None;
+    border-radius: 4px;
+    font-size: 1.5rem;
+    text-align: center;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2)   
+}
+
+.numpad-create-pin {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 40px;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.numpad-create-pin-btn {
+    padding: 10px;
+    background-color: white;
+    color: rgb(0, 0, 0);
+    border: none;
+    border-radius: 5px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    height: 100px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.clear-create-pin-btn{
+    
+    background-color: red;
+    color: white;
+}
+.create-pin-btn{
+    background-color: #27ae60;
+    color: rgb(255, 255, 255);
+}
+
+.clear-create-pin-btn:hover{
+    
+    background-color: rgb(167, 0, 0); 
+}
+.create-pin-btn:hover{
+    background-color: #229351;
+}
+
+@media (max-width: 768px) {
+    .container {
+        font-size: 18px; 
+        padding: 20px; 
+    }
+
+    .container input {
+        font-size: 16px;
+    }
+
+    .container input{
+        width: 91%;
+    }
+
+    .tx_container {
+        font-size: 18px;
+        padding-left: 15px;
+        padding-bottom: 30px;
+    }
+
+    .tx_container input {
+        font-size: 16px;
+    }
+
+    .numpad-btn {
+        height: 100px; 
+    }
+    .numpad_tx{
+        margin-top: 10px;
+    }
+    .numpad_tx-btn {
+        font-size: 18px;
+        height: 82px;
+    }
+    .input-usd-amount{
+        width: 87%;
+        font-size: 1.25rem;
+    }
+    .input-khr-amount{
+        width: 87%;
+        font-size: 1.25rem;
+    }
+    .confirm_transaction_container {
+        font-size: 16px;
+        padding: 20px;
+    }
+    .format {
+        font-size: 20px;
+    }
+
+    .format-value, #datetime {
+        font-size: 13px;
+    }
+    .bank-type {
+        grid-template-columns: repeat(3, 1fr);
+        margin-bottom: 0px;
+    }
+    .bank-label {
+        font-size: 20px;
+        text-align: center;
+        grid-column: span 3;
+    }
+    .logout-history{
+        margin-top: -20px;
+        margin-bottom: 10px;
+        width: 97%;
+    }
+    .numpad_tx{
+        width: 94%;
+    }
+    .cancel-btn{
+        margin-top: 0px;
+    }
+    .time-stamp-transaction{
+        padding-left: 42px;  
+        font-size: 13px;
+    }
+    .time-stamp{
+        padding-left: 42px;  
+        font-size: 11px;
+    }
+    tbody tr {
+        margin-bottom: 8px;
+        padding: 12px;
+    }
+
+    tbody tr td {
+        font-size: 14px;
+        padding: 4px 0;
+        color: rgb(255, 253, 253);
+    }
+
+    .transaction-history-container {
+        padding: 15px;
+        max-height: 700px; /* Ensure it fits well on smaller screens */
+    }
+
+    .numpad-create-pin-btn{
+        height: 85px;
+    }
+
+}
+
+@media (min-width: 600px) {
+    thead {
+        display: table-header-group;
+    }
+
+    tbody tr {
+        display: table-row;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    tbody tr td {
+        display: table-cell;
+        text-align: left;
+        padding: 8px;
+        font-size: 16px;
+    }
+
+    tbody tr td:before {
+        content: none;
+    }
+    thead {
+        display: table-header-group;
+    }
+
+    tbody tr {
+        display: table-row;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    tbody tr td {
+        display: table-cell;
+        text-align: left;
+        padding: 8px;
+        font-size: 16px;
+    }
+
+    tbody tr td:before {
+        content: none;
+    }
+}
+
+
+@media (max-width: 480px) {
+    .bank-type {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .bank-label {
+        font-size: 18px;
+        text-align: center;
+        grid-column: span 2;
+    }
+    .numpad_tx{
+        width: 96.5%;
+    }
+    .time-stamp-transaction{
+        padding-left: 36px;  
+        font-size: 11px;
+    }
+    .time-stamp{
+        padding-left: 36px;  
+        font-size: 11px;
+    }
+
+}
+
+@media (max-width: 350px) {
+    
+    .logout-history {
+        margin-top: -20px;
+        grid-template-columns: 1fr; 
+    }
+    .format{
+        font-size: 14px;
+    }
+    .bank-type {
+        grid-template-columns: 1fr;
+    }
+    .bank-label {
+        font-size: 16px;
+        text-align: center;
+        grid-column: span 1;
+    }
+    .bank-btn {
+        padding: 8px;
+    }
+    .numpad_tx{
+        width: 98.5%;
+    }
+    .time-stamp-transaction{
+        padding-left: 35px;  
+        font-size: 11px;
+    }
+    .time-stamp{
+        padding-left: 35px;  
+        font-size: 11px;
+    }
+
+    
+}

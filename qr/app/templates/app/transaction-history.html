@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="{% static 'app/js/script.js' %}"></script>
+
+</head>
+<body>
+    <div class="transaction-history-container">
+
+        
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% elif history %}
+        
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Transaction ID</th>
+                        <th>Amount</th>
+                        <th>Currency</th>
+                        <th>Payment Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in history %}
+                    <tr>
+                        <td data-label="Date & Time">{{ transaction.th_datetime }}</td>
+                        <td data-label="Transaction ID">{{ transaction.th_id }}</td>
+                        <td data-label="Amount">{{ transaction.th_amount }}</td>
+                        <td data-label="Currency">{{ transaction.th_currency }}</td>
+                        <td data-label="Payment Type">{{ transaction.th_payment_type }}</td>
+                    </tr>
+                    {% if forloop.first %}
+                    <div class="back-btn-his-text">
+                        <button type="button" class="close-history-btn" onclick="goBackToTransactionPageFromHistoryPage('{{ transaction.th_currency }}')">Back</button>
+                        <h1>Transaction History</h1>
+                    </div>
+    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="back-btn-his-text">
+                <button type="button" class="close-history-btn" onclick="goBackToTransactionPageFromHistoryPageIfNoTran()">Back</button>
+                <h1>Transaction History</h1>
+            </div>
+            <p>No transactions found</p>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="{% static 'app/js/script.js' %}"></script>
+</head>
+<body>
+
+    <form action="" method="POST">
+        {% csrf_token %}
+        <div id="qr-code-container">
+            <h2 class="qr-title">QR Code for {{ method }} Payment</h2>
+            <p class="qr-description">Scan here to make a payment for {{ amount }} {{ currency }}</p>
+    
+            <div id="qr-code">
+                <img id="qr-code-image" src="{% url 'generate_qr' method amount currency %}?telegram_id={{ telegram_id }}&telegram_username={{ telegram_username }}" alt="QR Code">
+            </div>
+    
+            <button type="button" class="qr-close-btn" onclick="goBackToTransactionPageFromQRGenerate()" data-currency="{{ currency }}">Close QR</button>
+    
+        </div>
+    </form>
+
+</body>
+</html>

@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction page</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="{% static 'app/js/script.js' %}"></script>
+
+</head>
+<body onload="disableBackButton()">
+    <div class="tx_container">
+        <div class="username_timestamp">
+            <div id="user-info-transaction">Use in TG Bot</div>
+            <div class="time-stamp-transaction" id="datetime-index">{{ server_time }}</div>
+        </div>
+        <form class="logout-history" action="{% url 'logout' %}" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="telegram_id" value="{{ telegram_id }}">
+            <button type="submit" class="logout-btn">Logout</button>
+            <button type="button" class="history-btn" onclick="redirectToHistory()">History</button>
+        </form>
+
+        <form action="" method="POST">
+            {% csrf_token %}
+
+            <input type="hidden" id="telegram_username" name="telegram_username">
+            <input type="hidden" id="telegram_id" name="telegram_id">
+
+            <div class="currency-amount">
+                <button type="button" class="input-usd" style="font-size: larger;font-weight: bold;" onclick="goToKhrTransaction()">
+                    <img src="{% static 'app/images/last-usa-logo.png' %}" alt="dollar-logo" style="width: 85px; height: 50px;
+                    border-radius: 5px;">
+                </button>
+                <input class="input-usd-amount" type="text" id="usd-amount" name="amount" maxlength="12" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Enter Amount $" readonly>
+            </div>
+    
+            <div class="numpad_tx">
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(7)">7</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(8)">8</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(9)">9</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(4)">4</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(5)">5</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(6)">6</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(1)">1</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(2)">2</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(3)">3</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx(0)">0</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx('00')">00</button>
+                <button type="button" class="numpad_tx-btn" onclick="addNumberUSD_tx('.')">.</button>
+                <button type="button" class="numpadclear_tx-btn clear-btn" onclick="clearNumberUSD_tx()">DEL</button>
+                <button type="button" class="paynow-btn" onclick="goToConfirmPage('USD')" >NEXT</button>
+
+            </div>
+
+        </form>
+
+    </div>
+</body>
+
+
+</html>
