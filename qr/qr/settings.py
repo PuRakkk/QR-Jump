@@ -17,6 +17,9 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+TIME_ZONE = 'Asia/Bangkok'
+
+USE_TZ = True
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -27,10 +30,10 @@ SECRET_KEY = 'django-insecure-^11zc703ec=i%zisn(bnnc483f362)x_6-ztxjam&neo3c_b42
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["0e90-167-179-41-221.ngrok-free.app", "127.0.0.1"]
+ALLOWED_HOSTS = ["2c74-167-179-41-221.ngrok-free.app", "127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://0e90-167-179-41-221.ngrok-free.app',  # Add all active ngrok URLs
+    'https://2c74-167-179-41-221.ngrok-free.app',  # Add all active ngrok URLs
 ]
 
 

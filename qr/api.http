@@ -3,7 +3,7 @@ Authorization: Token c592ec73761d89351d9ea7ae6df5fa51de1a4990
 
 ###
 POST http://127.0.0.1:8000/api/companies/ HTTP/1.1
-Content-Content-Type: application/json
+Content-Type: application/json
 
 {
     "com_name": "Company1",

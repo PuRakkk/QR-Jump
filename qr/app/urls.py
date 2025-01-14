@@ -12,10 +12,10 @@ from rest_framework_simplejwt.views import (
 )
 
 router = DefaultRouter()
-router.register('companies', CompanyViewSet)
-router.register('branches', BranchViewSet)  
+router.register(r'companies', CompanyViewSet)
+router.register(r'branches', BranchViewSet)  
 router.register(r'staff', StaffViewSet, basename='staff')
-router.register('transactions', TransactionHistoryViewSet)
+router.register(r'transactions', TransactionHistoryViewSet)
 router.register(r'assign-branches', AssignBranchesViewSet, basename='assign-branches')
 
 schema_view = get_schema_view(
@@ -25,7 +25,7 @@ schema_view = get_schema_view(
         description="QRJUMP API documentation",
     ),
     public=True,
-    permission_classes=(permissions.AllowAny,),
+    permission_classes=[],
 )
 
 urlpatterns = [

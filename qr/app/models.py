@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.timezone import now
+from django.utils.timezone import localtime
 
 class Company(models.Model):
     com_id = models.AutoField(primary_key=True)
@@ -52,7 +53,7 @@ class Staff(models.Model):
         db_table = 'qrjump_staff_users_storage'
 
     def __str__(self):
-        return f"{self.com_id} - {self.staff_name} - {self.staff_email} - {self.staff_contact} - {self.staff_position} - {self.staff_status} - {self.staff_created_at} - {self.staff_telegram_id} - {self.staff_telegram_username} - {self.staff_user_pin}"
+        return f"{self.com_id} - {self.staff_name} - {self.staff_email} - {self.staff_contact} - {self.staff_position} - {self.staff_status} - {localtime(self.staff_created_at).strftime('%Y-%m-%d %H:%M:%S')} - {self.staff_telegram_id} - {self.staff_telegram_username} - {self.staff_user_pin}"
     
 class TransactionHistory(models.Model):
     th_id = models.CharField(max_length=50, primary_key=True)
@@ -70,7 +71,7 @@ class TransactionHistory(models.Model):
         db_table = 'qrjump_transactions_history_storage'
 
     def __str__(self):
-        return f"{self.th_telegram_id} - {self.com_id} - {self.br_id} - {self.staff_id} - {self.th_datetime} - {self.th_amount} - {self.th_payment_type} - {self.th_created_at}"
+        return f"{self.th_telegram_id} - {self.com_id} - {self.br_id} - {self.staff_id} - {localtime(self.th_datetime).strftime('%Y-%m-%d %H:%M:%S')} - {self.th_amount} - {self.th_payment_type} - {localtime(self.th_created_at).strftime('%Y-%m-%d %H:%M:%S')}"
     
 class SuperAdmin(models.Model):
     superadmin_id = models.AutoField(primary_key=True)

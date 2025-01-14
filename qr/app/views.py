@@ -1,4 +1,5 @@
 from datetime import datetime
+import pytz
 from django.utils.timezone import now
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
@@ -164,7 +165,7 @@ def qr_generate_page(request, method, amount, currency):
             new_transaction = TransactionHistory.objects.create(
                 th_id=transaction_id,
                 th_telegram_id=telegram_id,
-                th_datetime=datetime.now(),
+                th_datetime=datetime.now().strftime("%Y%m%d%H%M%S"),
                 th_amount=amount,
                 th_currency=currency,
                 th_payment_type=method,
@@ -183,7 +184,7 @@ def qr_generate_page(request, method, amount, currency):
             new_transaction = TransactionHistory.objects.create(
                 th_id=transaction_id,
                 th_telegram_id=telegram_id,
-                th_datetime=datetime.now(),
+                th_datetime=datetime.now().strftime("%Y%m%d%H%M%S"),
                 th_amount=amount,
                 th_currency=currency,
                 th_payment_type=method,
@@ -218,7 +219,19 @@ def transaction_history(request):
         if telegram_id:
             try:
                 history = TransactionHistory.objects.filter(th_telegram_id=telegram_id).order_by('-th_datetime')
-                return render(request, 'app/transaction-history.html', {'history': history})
+                cambodia_timezone = pytz.timezone('Asia/Phnom_Penh')
+
+                formatted_history = []
+                for record in history:
+                    cambodia_time = record.th_datetime.astimezone(cambodia_timezone)
+                    formatted_history.append({
+                        'th_datetime': cambodia_time.strftime('%b. %d, %Y, %H:%M'),
+                        'th_id': record.th_id,
+                        'th_amount':record.th_amount,
+                        'th_currency':record.th_currency,
+                        'th_payment_type':record.th_payment_type,
+                    })
+                return render(request, 'app/transaction-history.html', {'history': formatted_history})
             except TransactionHistory.DoesNotExist:
                 return render(request, 'app/transaction-history.html', {'error': 'No transaction history found.'})
         else:
@@ -263,7 +276,8 @@ class CompanyViewSet(viewsets.ModelViewSet):
         - `com_email` (str): Filter by partial or full email.
         - `com_contact` (str): Filter by partial or full contact info.
         - `com_status` (bool): Filter by true/false that mean active or inactive status.
-        - `https://ezzecore1.mobi:444/api/companies/?com_name=Company`:This is an example of how to use query parameters.
+        - `https://ezzecore1.mobi:444/api/companies/`:This is example of how to fetch all companies.
+        - `https://ezzecore1.mobi:444/api/companies/?com_name=Company`:This is an example of how to fetch a specific company.
 
         Returns:
         - `200 OK`: A list of companies.
@@ -310,19 +324,14 @@ class CompanyViewSet(viewsets.ModelViewSet):
         Create a company.
 
         Query Parameters:
-        - `com_name`:Name of company.
-        - `com_email`:Email of company.
-        - `com_contact`:Contact of company.
-        - `com_status`:Boolean (true/false or 1/0)
-        - `telegram_id`:Telegram ID of company owner.
-        - `telegram_username`:Telegram username of company owner.
-        - `com_password`:Password of company.
+        - `com_name`: Name of the company.
+        - `com_email`: Email of the company.
+        - `com_contact`: Contact number of the company.
+        - `com_status`: Boolean (true/false or 1/0).
+        - `telegram_id`: Telegram ID of the company owner.
+        - `telegram_username`: Telegram username of the company owner.
+        - `com_password`: Password of the company.
         - `https://ezzecore1.mobi:444/api/companies/`:This is an example of how to create a company.
-
-        Returns:
-        - `200 OK`: A list of companies.
-        - `400 Bad Request`: If a query parameter is invalid.
-        - `404 Not Found`: If no companies match the query.
         """
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
@@ -340,7 +349,8 @@ class CompanyViewSet(viewsets.ModelViewSet):
             "errors": serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    def patch(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):  
+
         com_name = request.query_params.get('com_name', None)
         com_id = request.query_params.get('com_id', None)
 
@@ -370,6 +380,15 @@ class CompanyViewSet(viewsets.ModelViewSet):
         },status=status.HTTP_200_OK)
 
     def put(self, request, *args, **kwargs):
+        """
+        Update the company.
+
+        Query Parameters:
+        - `com_id`:ID of company to update.
+        - `com_name`:You can also update by using the name of company.
+        - `https://ezzecore1.mobi:444/api/companeis/?com_id`: Here is the example.
+        
+        """
         com_name = request.query_params.get('com_name', None)
         com_id = request.query_params.get('com_id', None)
 
@@ -452,6 +471,7 @@ class BranchViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def list(self, request, *args, **kwargs):
+        
         try:
 
             for param, value in request.query_params.items():
