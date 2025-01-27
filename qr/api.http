@@ -1,5 +1,5 @@
-GET http://127.0.0.1:8000/api/branches/ HTTP/1.1
-Authorization: Token c592ec73761d89351d9ea7ae6df5fa51de1a4990
+GEt http://127.0.0.1:8000/api/v1/transactions/ HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzM3MDM0MTg5LCJpYXQiOjE3MzcwMzMyODksImp0aSI6ImQ1NDY4MWY5NGQyMDQ2ZjFiZDViMzRmYjAwOGQyYjUyIiwidXNlcl9pZCI6MjR9.Jk39nnoZVt5Gs3eL2L_Qwzubgj39jF4O1bJKgzi-1jw
 
 ###
 POST http://127.0.0.1:8000/api/companies/ HTTP/1.1
@@ -14,10 +14,21 @@ Content-Type: application/json
 
 ###
 
-POST http://127.0.0.1:8000/api/token/ HTTP/1.1
+POST http://127.0.0.1:8000/api/v1/token/ HTTP/1.1
 Content-Type: application/json
 
 {
-    "username":"Test",
-    "password":"test987$$"
+    "username":"purak",
+    "password":"chessmandb987$$"
 }
+
+
+###
+POST http://127.0.0.1:8000/api/v1/token/refresh/ HTTP/1.1
+Content-Type: application/json
+
+{
+    "refresh":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTczODg1NTY3NywiaWF0IjoxNzM3NjQ2MDc3LCJqdGkiOiI4MGRkMDkzOWNhZWY0YzM2YThhMzY4Y2U0YzkwMDZmOCIsInVzZXJfaWQiOjQ0fQ.KjvKlsxjVKWfdA3dIl21CFqj4iHYxr31NByZhbmZiws"
+}
+
+

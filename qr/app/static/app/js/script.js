@@ -112,14 +112,29 @@ function clearCreatePinNumber(){
     pinInput.value = "";
 }
 
-function goToKhrTransaction() {
-    window.location.href = '/khr-transaction';
+function goToKhrTransaction(telegramUsername, staffUserPin) {
+    const url = `/khr-transaction?telegram_username=${encodeURIComponent(telegramUsername)}&staff_user_pin=${encodeURIComponent(staffUserPin)}`;
+    window.location.href = url;
 }
 
-function goToUsdTransaction() {
-    window.location.href = '/change-usd-transaction';
+function goToUsdTransaction(telegramUsername, staffUserPin) {
+    const url = `/usd-transaction?telegram_username=${encodeURIComponent(telegramUsername)}&staff_user_pin=${encodeURIComponent(staffUserPin)}`;
+    window.location.href = url;
 }
 
+function logout() {
+    fetch('/logout-user', {
+        method: 'GET',
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.href = '/';
+        }
+    })
+    .catch(error => {
+        console.error('Error logging out:', error);
+    });
+}
 function goToConfirmPage(currency) {
     // Get the input amount and convert it to a number
     const amountInput = currency === 'USD' 
@@ -193,7 +208,7 @@ function goBackToTransactionPageFromConfirmPage() {
     const currencyType = document.querySelector('.cancel-btn').getAttribute('data-currency');
 
     if (currencyType === 'USD') {
-        window.location.href = '/change-usd-transaction';
+        window.location.href = '/usd-transaction';
     } else if (currencyType === 'KHR') {
         window.location.href = '/khr-transaction';
     }
@@ -261,7 +276,7 @@ function goBackToTransactionPageFromQRGenerate() {
     const currencyType = document.querySelector('.qr-close-btn').getAttribute('data-currency');
 
     if (currencyType === 'USD') {
-        window.location.href = '/change-usd-transaction';
+        window.location.href = '/usd-transaction';
     } else if (currencyType === 'KHR') {
         window.location.href = '/khr-transaction';
     }
@@ -280,7 +295,7 @@ function redirectToHistory() {
 function goBackToTransactionPageFromHistoryPage(currency) {
 
     if (currency === 'USD') {
-        window.location.href = '/change-usd-transaction';
+        window.location.href = '/usd-transaction';
     } else if (currency === 'KHR') {
         window.location.href = '/khr-transaction';
     }
@@ -288,6 +303,6 @@ function goBackToTransactionPageFromHistoryPage(currency) {
 
 function goBackToTransactionPageFromHistoryPageIfNoTran() {
 
-        window.location.href = '/change-usd-transaction';
+        window.location.href = '/usd-transaction';
 }
 

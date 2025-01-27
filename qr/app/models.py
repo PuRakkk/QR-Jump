@@ -45,8 +45,8 @@ class Staff(models.Model):
     staff_position = models.CharField(max_length=100, blank=True, null=True)
     staff_status = models.BooleanField(default=True)
     staff_created_at = models.DateTimeField(auto_now_add=True)
-    staff_telegram_id = models.BigIntegerField(blank=True, null=True)
-    staff_telegram_username = models.CharField(max_length=150)
+    staff_telegram_id = models.BigIntegerField(blank=True, null=True, unique=True)
+    staff_telegram_username = models.CharField(max_length=150,unique=True)
     staff_user_pin = models.CharField(max_length=8, blank=True, null=True)
 
     class Meta:
@@ -54,6 +54,7 @@ class Staff(models.Model):
 
     def __str__(self):
         return f"{self.com_id} - {self.staff_name} - {self.staff_email} - {self.staff_contact} - {self.staff_position} - {self.staff_status} - {localtime(self.staff_created_at).strftime('%Y-%m-%d %H:%M:%S')} - {self.staff_telegram_id} - {self.staff_telegram_username} - {self.staff_user_pin}"
+    
     
 class TransactionHistory(models.Model):
     th_id = models.CharField(max_length=50, primary_key=True)

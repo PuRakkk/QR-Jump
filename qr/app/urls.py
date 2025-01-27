@@ -2,9 +2,11 @@ from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
 from .views import CompanyViewSet, BranchViewSet, StaffViewSet, TransactionHistoryViewSet, AssignBranchesViewSet
-from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from .views import fetch_all_users
+from django.contrib.auth.decorators import login_required
+
 
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -30,18 +32,20 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path('', views.home, name='index'),
-    path('usd-transaction/', views.usd_transaction_page, name='usd_transaction_page'),
-    path('change-usd-transaction/', views.change_usd_transaction, name='change_usd_transaction'),
-    path('khr-transaction/', views.khr_transaction_page, name='khr_transaction_page'),
-    path('confirm-transaction/', views.confirm_transaction, name='confirm_transaction_page'),
-    path('qr-generate/<str:method>/<str:amount>/<str:currency>/', views.qr_generate_page, name='qr_generate_page'),
-    path('generate_qr/<str:method>/<str:amount>/<str:currency>/', views.qr_generate, name='generate_qr'),
-    path('transaction-history/', views.transaction_history, name='transaction-history'),
-    path('create-pin/', views.create_pin, name='create-pin'),
-    path('logout/', views.logout_view, name='logout'),
+    path('check_login/', views.check_login, name='check_login'),
+    path('usd-transaction/', login_required(views.usd_transaction_page), name='usd_transaction_page'),
+    path('khr-transaction/', login_required(views.khr_transaction_page), name='khr_transaction_page'),
+    path('confirm-transaction/', login_required(views.confirm_transaction), name='confirm_transaction_page'),
+    path('qr-generate/<str:method>/<str:amount>/<str:currency>/', login_required(views.qr_generate_page), name='qr_generate_page'),
+    path('generate_qr/<str:method>/<str:amount>/<str:currency>/', login_required(views.qr_generate), name='generate_qr'),
+    path('transaction-history/', login_required(views.transaction_history), name='transaction-history'),
+    path('logout/', views.logout_user, name='logout_user'),
     path('api/v1/', include(router.urls)),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/v1/get-users/', fetch_all_users, name='fetch_all_users'),
+    path('api/v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/v1/check_token_status/', views.check_token_status, name='check_token_status'),
+    path('update-session/', views.update_session, name='update_session'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR JUMP</title>
+    <link rel="icon" href="{% static 'app/images/favicon.ico' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="{% static 'app/js/script.js' %}"></script>
@@ -17,8 +18,9 @@
             <div id="user-info-transaction">Use in TG Bot</div>
             <div class="time-stamp" id="datetime-index">{{ server_time }}</div>
         </div>
-        <form action="{% url 'usd_transaction_page' %}" method="POST">
+        <form action="{% url 'check_login' %}" method="POST">
             {% csrf_token %}
+            <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
             <input type="hidden" id="telegram_username" name="telegram_username">
             <input type="hidden" id="telegram_id" name="telegram_id">
             <input type="password" id="pin" name="pin" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Enter PIN" inputmode="none" autofocus>

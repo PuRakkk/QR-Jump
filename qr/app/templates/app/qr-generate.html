@@ -5,9 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Code</title>
+    <link rel="icon" href="{% static 'app/images/favicon.ico' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="{% static 'app/js/script.js' %}"></script>
+    <script src="{% static 'app/js/checking-token.js' %}"></script>
+    <script src="{% static 'app/js/active-token.js' %}"></script>
 </head>
 <body>
 
@@ -21,10 +24,9 @@
                 <img id="qr-code-image" src="{% url 'generate_qr' method amount currency %}?telegram_id={{ telegram_id }}&telegram_username={{ telegram_username }}" alt="QR Code">
             </div>
     
-            <button type="button" class="qr-close-btn" onclick="goBackToTransactionPageFromQRGenerate()" data-currency="{{ currency }}">Close QR</button>
+            <button type="button" class="qr-close-btn" onclick="refreshAccessToken(); goBackToTransactionPageFromQRGenerate();" data-currency="{{ currency }}">Close QR</button>
     
         </div>
     </form>
-
 </body>
 </html>

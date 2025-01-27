@@ -5,9 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirm Transaction</title>
+    <link rel="icon" href="{% static 'app/images/favicon.ico' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="{% static 'app/js/script.js' %}"></script>
+    <script src="{% static 'app/js/checking-token.js' %}"></script>
+    <script src="{% static 'app/js/active-token.js' %}"></script>
+
 </head>
 <body onload="disableBackButton()">
     <div class="confirm_transaction_container">
@@ -28,25 +32,25 @@
             <div class="bank-type">
                 <p class="bank-label">Select payment</p>
     
-                <button type="button" class="bank-btn" onclick="redirectToQRPage('Wing', '{{ amount }}', '{{ currency }}')">
+                <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('Wing', '{{ amount }}', '{{ currency }}');">
                     <img src="{% static 'app/images/wing-logo.png' %}" alt="Wing Logo" style="width: 80px; height: 80px; border-radius: 5px;">
                 </button>
     
-                <button type="button" class="bank-btn" onclick="redirectToQRPage('ABA', '{{ amount }}', '{{ currency }}')">
+                <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('ABA', '{{ amount }}', '{{ currency }}');">
                     <img src="{% static 'app/images/aba-logo.png' %}" alt="ABA Logo" style="width: 80px; height: 80px; border-radius: 5px;">
                 </button>
     
-                <button type="button" class="bank-btn" onclick="redirectToQRPage('Canadia', '{{ amount }}', '{{ currency }}')">
+                <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('Canadia', '{{ amount }}', '{{ currency }}');">
                     <img src="{% static 'app/images/canadia-logo.png' %}" alt="Canadia Logo" style="width: 80px; height: 80px; border-radius: 5px;">
                 </button>
     
-                <button type="button" class="bank-btn" onclick="redirectToQRPage('KHQR', '{{ amount }}', '{{ currency }}')">
+                <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('KHQR', '{{ amount }}', '{{ currency }}');">
                     <img src="{% static 'app/images/khqr-logo.png' %}" alt="KHQR Logo" style="width: 80px; height: 80px; border-radius: 5px;">
                 </button>
             </div>
     
             <div class="cancel-btn-class">
-                <button type="button" class="cancel-btn" onclick="goBackToTransactionPageFromConfirmPage()" data-currency="{{ currency }}">Cancel</button>
+                <button type="button" class="cancel-btn" onclick="refreshAccessToken(); goBackToTransactionPageFromConfirmPage();" data-currency="{{ currency }}">Cancel</button>
             </div>
         </form>
 

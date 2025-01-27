@@ -5,15 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transaction History</title>
+    <link rel="icon" href="{% static 'app/images/favicon.ico' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="{% static 'app/js/script.js' %}"></script>
+    <script src="{% static 'app/js/checking-token.js' %}"></script>
+    <script src="{% static 'app/js/active-token.js' %}"></script>
 
 </head>
 <body>
     <div class="transaction-history-container">
-
-        
 
         {% if error %}
             <p class="error">{{ error }}</p>
@@ -40,7 +41,7 @@
                     </tr>
                     {% if forloop.first %}
                     <div class="back-btn-his-text">
-                        <button type="button" class="close-history-btn" onclick="goBackToTransactionPageFromHistoryPage('{{ transaction.th_currency }}')">Back</button>
+                        <button type="button" class="close-history-btn" onclick="refreshAccessToken(); goBackToTransactionPageFromHistoryPage('{{ transaction.th_currency }}');">Back</button>
                         <h1>Transaction History</h1>
                     </div>
     {% endif %}
@@ -49,7 +50,7 @@
             </table>
         {% else %}
             <div class="back-btn-his-text">
-                <button type="button" class="close-history-btn" onclick="goBackToTransactionPageFromHistoryPageIfNoTran()">Back</button>
+                <button type="button" class="close-history-btn" onclick="refreshAccessToken(); goBackToTransactionPageFromHistoryPageIfNoTran();">Back</button>
                 <h1>Transaction History</h1>
             </div>
             <p>No transactions found</p>

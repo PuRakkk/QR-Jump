@@ -8,6 +8,8 @@
     <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="{% static 'app/js/script.js' %}"></script>
+    <script src="{% static 'app/js/checking-token.js' %}"></script>
+    <script src="{% static 'app/js/active-token.js' %}"></script>
 
 </head>
 <body onload="disableBackButton()">
@@ -18,7 +20,7 @@
             <div id="user-info-transaction">Use in TG Bot</div>
             <div class="time-stamp-transaction" id="datetime-index">{{ server_time }}</div>
         </div>
-        <form class="logout-history" action="{% url 'logout' %}" method="POST">
+        <form class="logout-history" action="{% url 'logout_user' %}" method="POST">
             {% csrf_token %}
             <button type="submit" class="logout-btn">Logout</button>
             <button type="button" class="history-btn" onclick="redirectToHistory()">History</button>
@@ -27,12 +29,12 @@
 
         <form action="" method="POST">
             {% csrf_token %}
-
+            <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
             <input type="hidden" id="telegram_username" name="telegram_username">
             <input type="hidden" id="telegram_id" name="telegram_id">
 
             <div class="currency-amount">
-                <button type="button" class="input-khr" style="font-size: larger;font-weight: bold;"  onclick="goToUsdTransaction()">
+                <button type="button" class="input-khr" style="font-size: larger;font-weight: bold;"  onclick="goToUsdTransaction('{{ telegram_username }}', '{{ staff_user_pin }}')">
                     <img src="{% static 'app/images/cambodia-last-flag.png' %}" alt="riel-logo" style="width: 85px; height: 50px;
                     border-radius: 5px;">
                 </button>
@@ -40,20 +42,20 @@
             </div>
 
             <div class="numpad_tx">
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(7)">7</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(8)">8</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(9)">9</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(4)">4</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(5)">5</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(6)">6</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(1)">1</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(2)">2</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(3)">3</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx(0)">0</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx('00')">00</button>
-                <button type="button" class="numpad_tx-btn" onclick="addNumberKHR_tx('000')">000</button>
-                <button type="button" class="numpadclear_tx-btn clear-btn" onclick="clearNumberKHR_tx()">DEL</button>
-                <button type="button" class="paynow-btn" onclick="goToConfirmPage('KHR')">NEXT</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(7);">7</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(8);">8</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(9);">9</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(4);">4</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(5);">5</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(6);">6</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(1);">1</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(2);">2</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(3);">3</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx(0);">0</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx('00');">00</button>
+                <button type="button" class="numpad_tx-btn" onclick="refreshAccessToken(); addNumberKHR_tx('000');">000</button>
+                <button type="button" class="numpadclear_tx-btn clear-btn" onclick="refreshAccessToken(); clearNumberKHR_tx();">DEL</button>
+                <button type="button" class="paynow-btn" onclick="refreshAccessToken(); goToConfirmPage('KHR');">NEXT</button>
         
             </div>
 

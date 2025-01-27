@@ -1,15 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import pytz
 from django.utils.timezone import now
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
-from django.contrib.auth import logout
 import qrcode
 from io import BytesIO
-from django.views.decorators.csrf import csrf_protect, csrf_exempt
-from django.http import HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_protect
 import logging
-from rest_framework import viewsets, views
+from rest_framework import viewsets
 from .models import Company, Branch, Staff, TransactionHistory
 from .serializers import CompanySerializer, BranchSerializer, StaffSerializer, TransactionHistorySerializer
 from django_filters import rest_framework as filters
@@ -17,71 +15,243 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
-from rest_framework.permissions import IsAdminUser
-
+from rest_framework.permissions import IsAdminUser,IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.models import Permission
+import requests
+import hashlib
+import base64
+import time
+import jwt
+from django.http import JsonResponse
+from django.contrib.auth import login
+from django.contrib.auth.models import User
 
 logger = logging.getLogger(__name__)
 
-def home(request):
-    telegram_id = request.GET.get('telegram_id') or request.POST.get('telegram_id')
-
-    if not telegram_id:
-        logger.warning("Missing telegram_id parameter.")
-        return HttpResponseBadRequest("Missing telegram_id parameter.")
-
-    try:
-        user = Staff.objects.get(staff_telegram_id=telegram_id)
-        if user.staff_user_pin:
-            return render(request, "app/index.html")
-        else:
-            return render(request, "app/create-pin.html")
-    except Staff.DoesNotExist:
-        return render(request, "app/create-pin.html")
-
-@csrf_exempt
-def create_pin(request):
+def check_login(request):
     error_message = None
     if request.method == 'POST':
-
+        telegram_username = request.POST.get('telegram_username')
         telegram_id = request.POST.get('telegram_id')
-        username = request.POST.get('telegram_username')
-        user_pin = request.POST.get('create-pin')
-        if not user_pin:
+        pin = request.POST.get('pin')
+
+        if not pin:
             error_message = "Please input PIN"
-        
-        elif user_pin:
-            lengthPin = len(user_pin)
+        elif len(pin) < 4:
+            error_message = "PIN must be at least 4 characters long"
+        elif not telegram_username or not telegram_id:
+            error_message = "Please use Telegram Bot"
 
-            if lengthPin < 4:
-                error_message = "PIN must be at least 4 digits"
-            
-            elif lengthPin > 8:
-                error_message = "PIN can be a maximum of 8 digits"
-            
-            elif not username or not telegram_id:
-                error_message = "Please use in Telegram Bot"
+        else:
+            try:
+                user_pin = request.POST.get('pin')
+                user_pass = user_pin
 
-        if username and not error_message:
-            Staff.objects.filter(staff_telegram_username=username).update(
-                staff_user_pin=user_pin,
-                staff_telegram_id=telegram_id
-            )
-            return render(request, "app/index.html")
-    return render(request, 'app/create-pin.html',  {'error_message': error_message})
+                hashed_pass = hashlib.sha256(user_pass.encode('utf-8')).hexdigest()
+                password = base64.b64encode(hashed_pass.encode('utf-8')).decode('utf-8')
+
+                api = "http://127.0.0.1:8000/api/v1/token/"
+
+                data = {
+                    'username':telegram_username,
+                    'password':password
+                }
+
+                response = requests.post(api, data=data)
+
+                if response.status_code == 200:
+                    access_token = response.json().get('access')
+                    refresh_token = response.json().get('refresh')
+
+                    request.session['access_token'] = access_token
+                    request.session['refresh_token'] = refresh_token
+                    request.session.save()
+                    try:
+                        api = f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_username={telegram_username}"
+
+                        data = {
+                            'staff_telegram_id': telegram_id,}
+                         
+                        headers = {
+                             'Authorization': f'Bearer {access_token}',
+                             'Content-Type': 'application/json'
+                         }
+                        
+                        response = requests.put(api, json=data,headers=headers)
+                    except requests.exceptions.RequestException as e:
+                        error_message = f"Error fetching staff information: {str(e)}"
+
+                    try:
+                        api = f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_username={telegram_username}"
+                         
+                        headers = {
+                             'Authorization': f'Bearer {access_token}',
+                             'Content-Type': 'application/json'
+                         }
+                        
+                        response = requests.get(api, headers=headers)
+
+                        if response.status_code == 200:
+                            data = response.json()
+                            if 'data' in data and data['data']:
+                                staff_user_pin = data['data'][0]['staff_user_pin']
+                                staff_status = data['data'][0]['staff_status']
+                                if staff_user_pin == user_pin and staff_status is True:
+                                    user, created = User.objects.get_or_create(username=telegram_username)
+                                    login(request, user)
+                                    return redirect(f'/usd-transaction/?telegram_username={telegram_username}&staff_user_pin={staff_user_pin}') 
+                        else:
+                            error_message = "Your account is inactive. Please contact admin"
+                    except requests.exceptions.RequestException as e:
+                        error_message = f"Error fetching staff information: {str(e)}"
+                else:
+                    error_message = "Invalid PIN or not yet registered"
+
+            except Exception as e:
+                print(f"Error: {str(e)}")
+
+    return render(request, 'app/index.html', {'error_message': error_message})
+
+def update_session(request):
+    message = None
+    access_token = request.session.get('access_token')
+    refresh_token = request.session.get('refresh_token')
+
+    if not access_token or not refresh_token:
+        return redirect('/')
+
+    try:
+        decoded_token = jwt.decode(access_token, options={"verify_signature": False})
+        exp_timestamp = decoded_token.get('exp')
+        if not exp_timestamp:
+            return redirect('/')
+
+        exp_time = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+        remaining_time = (exp_time - datetime.now(timezone.utc)).total_seconds()
+
+        if remaining_time > 15:
+            return HttpResponse(message)
+
+    except jwt.ExpiredSignatureError:
+        pass
+    except Exception as e:
+        print(f"{str(e)}")
+        return redirect('/')
+
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
+
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
+
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"{str(e)}")
+        return redirect('/')
+
+    return HttpResponse(message)
+
+def home(request):
+    
+    return render(request, 'app/index.html')
 
 def khr_transaction_page(request):
-    if not request.session.get('authenticated'):
-        return redirect('index') 
-    return render(request, "app/khr-transaction.html")
+    telegram_username = request.GET.get('telegram_username')
+    staff_user_pin = request.GET.get('staff_user_pin')
 
-def change_usd_transaction(request):
-    if not request.session.get('authenticated'):
-        return redirect('index')
-    return render(request, "app/usd-transaction.html")
+    refresh_token = request.session.get('refresh_token')
+    if not refresh_token:
+        return redirect('/')
+
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
+
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
+
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"Error refreshing token: {str(e)}")
+        return redirect('/')
+
+    context = {
+        'telegram_username': telegram_username,
+        'staff_user_pin': staff_user_pin,
+    }
+    return render(request, "app/khr-transaction.html", context)
+
+def usd_transaction_page(request):
+    telegram_username = request.GET.get('telegram_username')
+    staff_user_pin = request.GET.get('staff_user_pin')
+
+    refresh_token = request.session.get('refresh_token')
+    if not refresh_token:
+        return redirect('/')
+
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
+
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
+
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"Error refreshing token: {str(e)}")
+        return redirect('/')
+
+    context = {
+        'access_token': new_access_token,
+        'refresh_token': new_refresh_token,
+        'telegram_username': telegram_username,
+        'staff_user_pin': staff_user_pin,
+    }
+    return render(request, "app/usd-transaction.html", context)
 
 def confirm_transaction(request):
-    if not request.session.get('authenticated'):
-        return redirect('index')
+    refresh_token = request.session.get('refresh_token')
+    if not refresh_token:
+        return redirect('/')
+
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
+
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
+
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"Error refreshing token: {str(e)}")
+        return redirect('/')
 
     currency = request.GET.get('currency')
     amount = request.GET.get('amount')
@@ -92,43 +262,76 @@ def confirm_transaction(request):
         'amount': amount,
         'server_time': server_time,
     })
+    
+def check_token_status(request):
+    access_token = request.session.get('access_token')
+    if not access_token:
+        return JsonResponse({"redirect_required": True})
 
-def usd_transaction_page(request):
-    error_message = None
+    try:
+        payload = jwt.decode(access_token, options={"verify_signature": False}, algorithms=["HS256"])
+        expiration_time = payload.get("exp")
+        current_time = int(time.time())
 
-    if request.method == 'POST':
-        telegram_username = request.POST.get('telegram_username')
-        telegram_id = request.POST.get('telegram_id')
-        pin = request.POST.get('pin')
-
-        if not pin:
-            error_message = "Please input PIN"
-        
-        elif not telegram_username or not telegram_id:
-            error_message = "Please use in Telegram Bot"
-
+        if current_time >= expiration_time:
+            return JsonResponse({"redirect_required": True})
         else:
-            try:
-                telegram_id = int(telegram_id)
+            return JsonResponse({"redirect_required": False})
 
-                user = Staff.objects.get(
-                    staff_telegram_id=telegram_id,
-                    staff_telegram_username=telegram_username,
-                    staff_user_pin=pin
-                )
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({"redirect_required": True})
+    except jwt.DecodeError:
+        return JsonResponse({"redirect_required": True})
+    except Exception as e:
+        print(f"Error in token check: {str(e)}")
+        return JsonResponse({"redirect_required": True})
 
-                request.session['authenticated'] = True
-                request.session['staff_id'] = user.staff_id
-                return redirect('change_usd_transaction')
+def logout_user(request):
+    request.session.flush()
+    return redirect('/')
 
-            except ValueError:
-                error_message = "Invalid data format. Please try again."
-            except Staff.DoesNotExist:
-                error_message = "Invalid PIN."
-
-    return render(request, 'app/index.html', {'error_message': error_message})
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def fetch_all_users(request):
+    if request.method == 'GET':
+        username = request.query_params.get('username', None)
+        
+        if username:
+            users = User.objects.filter(username=username).values('username', 'is_staff')
+        else:
+            users = User.objects.values('username', 'is_staff')
+        
+        if not users:
+            return Response({'error': 'No users found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        return Response({
+            'users': list(users),
+        }, status=status.HTTP_200_OK)
+    
 
 def qr_generate(request, method, amount, currency):
+    refresh_token = request.session.get('refresh_token')
+    if not refresh_token:
+        return redirect('/')
+
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
+
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
+
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"Error refreshing token: {str(e)}")
+        return redirect('/')
+    
     qr_data = f'Comming soon>>@{method}>>Payment Gateway>>{currency} {amount}'
     qr = qrcode.make(qr_data)
 
@@ -141,108 +344,163 @@ def qr_generate(request, method, amount, currency):
 
 @csrf_protect
 def qr_generate_page(request, method, amount, currency):
+    refresh_token = request.session.get('refresh_token')
+    if not refresh_token:
+        return redirect('/')
+
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
+
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
+
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"Error refreshing token: {str(e)}")
+        return redirect('/')
     if request.method == 'POST':
         telegram_id = request.POST.get('telegram_id')
         username = request.POST.get('telegram_username')
-        branch_ids = 1
-
 
         if not telegram_id or not username:
             return HttpResponse("Telegram ID or Username is missing", status=400)
         
+        access_token = request.session.get('access_token')
+        if not access_token:
+            return redirect('/')
+        
         try:
-            company = Company.objects.get(com_id=1)
-            branch = Branch.objects.filter(id=branch_ids).first()
+            response = requests.get(f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_username={username}", headers={'Authorization': f'Bearer {access_token}'})
+            data = response.json()
+            if 'data' in data and data['data']:
+                staff_id = data['data'][0]['staff_id']
+                com_id = data['data'][0]['com_id']
+                branches = data['data'][0]['branches']
+                if branches:
+                    branch_ids = branches[0]['id']
 
-            staff = Staff.objects.filter(staff_telegram_id=telegram_id).first()
-
-            if not branch:
-                return HttpResponse("Branch not found", status=400)
-
-            # Create the transaction record
-            transaction_id = str(datetime.now().strftime("%Y%m%d%H%M%S"))
-
-            new_transaction = TransactionHistory.objects.create(
-                th_id=transaction_id,
-                th_telegram_id=telegram_id,
-                th_datetime=datetime.now().strftime("%Y%m%d%H%M%S"),
-                th_amount=amount,
-                th_currency=currency,
-                th_payment_type=method,
-                com_id=company,
-                br_id=branch,
-                staff_id=staff,
-            )
-
-            print("Transaction successfully saved!")
-            print(f"Saved Transaction ID: {new_transaction.th_id}")
-
-        except Company.DoesNotExist:
-            return HttpResponse("Company not found", status=400)
-        except Staff.DoesNotExist:
-            print("No matching staff found for this Telegram ID, but continuing with the transaction.")
-            new_transaction = TransactionHistory.objects.create(
-                th_id=transaction_id,
-                th_telegram_id=telegram_id,
-                th_datetime=datetime.now().strftime("%Y%m%d%H%M%S"),
-                th_amount=amount,
-                th_currency=currency,
-                th_payment_type=method,
-                com_id=company,
-                br_id=branch,
-                staff_id=staff, 
-            )
-
-            print("Transaction saved without staff info.")
+                if not com_id:
+                    return HttpResponse("Company not found", status=400)
+                elif not branches:
+                    return HttpResponse("Branch not found", status=400)
+            else:
+                return HttpResponse("Error fetching staff", status=500)
         except Exception as e:
-            print(f"Error saving transaction: {e}")
+            return HttpResponse(f"Error fetching staff: {e}", status=500)
+        
+    try:
+        if not com_id:
+            return HttpResponse("Company not found", status=400)
+        elif not branch_ids:
+            return HttpResponse("Branch not found", status=400)
+        
+        try:
+            transaction_id = str(datetime.now().strftime("%Y%m%d%H%M%S"))
+            transaction_datetime = datetime.now().strftime("%Y%m%d%H%M%S")
+
+            api = ("http://127.0.0.1:8000/api/v1/transactions/")
+
+            data = {
+                'th_id': transaction_id,
+                'th_telegram_id': telegram_id,
+                'th_datetime': transaction_datetime,
+                'th_amount': amount,
+                'th_currency': currency,
+                'th_payment_type': method,
+                'com_id': com_id,
+                'br_id': branch_ids,
+                'staff_id': staff_id,
+            }
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            response = requests.post(api, headers=headers, json=data)
+
+            if response.status_code == 201:
+                return render(request, 'app/qr-generate.html', {
+                        'method': method,
+                        'amount': amount,
+                        'currency': currency,
+                    })
+            else:
+                return HttpResponse("Error saving transaction", status=500)
+        except Exception as e:
             return HttpResponse(f"Error saving transaction: {e}", status=500)
-
-        # Render the QR code page with transaction details
-        return render(request, 'app/qr-generate.html', {
-            'method': method,
-            'amount': amount,
-            'currency': currency,
-        })
-
-    # If GET request, simply render the page with the method, amount, and currency
-    return render(request, 'app/qr-generate.html', {
-        'method': method,
-        'amount': amount,
-        'currency': currency,
-    })
+    except Company.DoesNotExist:
+        return HttpResponse("Company not found", status=400)
 
 def transaction_history(request):
+    refresh_token = request.session.get('refresh_token')
+    if not refresh_token:
+        return redirect('/')
+
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
+
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
+
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"Error refreshing token: {str(e)}")
+        return redirect('/')
     if request.method == "GET":
         telegram_id = request.GET.get("telegram_id")
         
         if telegram_id:
             try:
-                history = TransactionHistory.objects.filter(th_telegram_id=telegram_id).order_by('-th_datetime')
-                cambodia_timezone = pytz.timezone('Asia/Phnom_Penh')
+                api_url = f"http://127.0.0.1:8000/api/v1/transactions/?th_telegram_id={telegram_id}"
+                headers = {
+                    'Authorization': f'Bearer {new_access_token}',
+                }
 
-                formatted_history = []
-                for record in history:
-                    cambodia_time = record.th_datetime.astimezone(cambodia_timezone)
-                    formatted_history.append({
-                        'th_datetime': cambodia_time.strftime('%b. %d, %Y, %H:%M'),
-                        'th_id': record.th_id,
-                        'th_amount':record.th_amount,
-                        'th_currency':record.th_currency,
-                        'th_payment_type':record.th_payment_type,
-                    })
-                return render(request, 'app/transaction-history.html', {'history': formatted_history})
-            except TransactionHistory.DoesNotExist:
-                return render(request, 'app/transaction-history.html', {'error': 'No transaction history found.'})
+                response = requests.get(api_url, headers=headers)
+
+                if response.status_code == 200:
+                    response_data = response.json()
+
+                    if 'data' in response_data and isinstance(response_data['data'], list):
+                        history = response_data['data']
+                        history.sort(key=lambda x: x['th_datetime'], reverse=True)
+                        cambodia_timezone = pytz.timezone('Asia/Phnom_Penh')
+                        formatted_history = []
+                        for record in history:
+                            th_datetime = pytz.utc.localize(
+                                datetime.strptime(record['th_datetime'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                            ).astimezone(cambodia_timezone)
+                            
+                            formatted_history.append({
+                                'th_datetime': th_datetime.strftime('%b. %d, %Y, %H:%M'), 
+                                'th_id': record['th_id'],
+                                'th_amount': record['th_amount'],
+                                'th_currency': record['th_currency'],
+                                'th_payment_type': record['th_payment_type'],
+                            })
+
+                        return render(request, 'app/transaction-history.html', {'history': formatted_history})
+                    else:
+                        return render(request, 'app/transaction-history.html', {'error': 'Invalid API response format.'})
+                else:
+                    return render(request, 'app/transaction-history.html', {'error': 'Failed to fetch transaction history from the API.'})
+            except Exception as e:
+                return render(request, 'app/transaction-history.html', {'error': f'An error occurred: {str(e)}'})
         else:
             return render(request, 'app/transaction-history.html', {'error': 'Telegram ID is required.'})
-
-def logout_view(request):
-    if request.method == 'POST':
-            
-        logout(request)
-        request.session.flush()
-        return render(request,'app/index.html')
 
 class CompanyFilter(filters.FilterSet):
     com_id = filters.NumberFilter(field_name='com_id', lookup_expr='exact')
@@ -622,6 +880,7 @@ class StaffFilter(filters.FilterSet):
     staff_id = filters.NumberFilter(field_name='staff_id', lookup_expr='exact')
     staff_name = filters.CharFilter(field_name='staff_name', lookup_expr='icontains')
     staff_telegram_username = filters.CharFilter(field_name='staff_telegram_username', lookup_expr='icontains')
+    staff_telegram_id = filters.CharFilter(field_name='staff_telegram_id',lookup_expr='icontains')
     class Meta:
         model = Staff
         fields = ['com_id', 'br_id', 'staff_id', 'staff_name', 'staff_telegram_username']
@@ -636,6 +895,89 @@ class StaffViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         self.permission_classes = [IsAdminUser]
         return super().get_permissions()
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            staff_user_pin = serializer.validated_data.get('staff_user_pin')
+            staff_telegram_username = serializer.validated_data.get('staff_telegram_username')
+            staff_role = serializer.validated_data.get('staff_position')
+
+            print("User role",staff_role)
+
+            if not staff_user_pin or not staff_telegram_username:
+                return Response({
+                    "success": False,
+                    "code": 400,
+                    "message": "staff_user_pin and staff_telegram_username are required.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            hashed_pin = hashlib.sha256(staff_user_pin.encode('utf-8')).hexdigest()
+            base64_encoded_pin = base64.b64encode(hashed_pin.encode('utf-8')).decode('utf-8')
+
+            user = User.objects.create_user(
+                username=staff_telegram_username,
+                password=base64_encoded_pin
+            )
+            user.is_staff = False
+
+            try:
+                if staff_role == "staff":
+                    per = [
+                        Permission.objects.get(codename='view_transactionhistory'),
+                        Permission.objects.get(codename='add_transactionhistory')
+                    ]
+                    user.user_permissions.add(*per)
+                elif staff_role == "manager":
+                    per = [
+                        Permission.objects.get(codename='add_staff'),
+                        Permission.objects.get(codename='change_staff'),
+                        Permission.objects.get(codename='delete_staff'),
+                        Permission.objects.get(codename='view_staff'),
+                        Permission.objects.get(codename='view_branch'),
+                        Permission.objects.get(codename='add_transactionhistory'),
+                        Permission.objects.get(codename='view_transactionhistory')
+                    ]
+                    user.user_permissions.add(*per)
+                elif staff_role == "admin":
+                    per = [
+                        Permission.objects.get(codename='add_staff'),
+                        Permission.objects.get(codename='change_staff'),
+                        Permission.objects.get(codename='delete_staff'),
+                        Permission.objects.get(codename='view_staff'),
+                        Permission.objects.get(codename='view_branch'),
+                        Permission.objects.get(codename='add_transactionhistory'),
+                        Permission.objects.get(codename='view_transactionhistory'),
+                        Permission.objects.get(codename='add_branch'),
+                        Permission.objects.get(codename='delete_branch'),
+                        Permission.objects.get(codename='change_branch'),
+                        Permission.objects.get(codename='view_company')
+                    ]
+                    user.user_permissions.add(*per)
+            except Permission.DoesNotExist:
+                return Response({
+                    'error': 'Permission not found.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            user.save()
+
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+
+            serializer.save(staff_status=False)
+
+            return Response({
+                "success": True,
+                "code": 200,
+                "message": "Staff Create successfully"
+            },status=status.HTTP_200_OK)
+        return Response({
+            "success": False,
+            "code": 400,
+            "message": "Invalid data provided",
+            "data": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
 
     def list(self, request, *args, **kwargs):
         try:
@@ -672,36 +1014,20 @@ class StaffViewSet(viewsets.ModelViewSet):
                 "message": "An error occurred while fetching staff data",
                 "error": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                "success": True,
-                "code": 201,
-                "message": "Staff created successfully",
-                "data": serializer.data
-            }, status=status.HTTP_201_CREATED)
-        return Response({
-            "success": False,
-            "code": 400,
-            "message": "Invalid data provided",
-            "data": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
 
     def put(self, request, *args, **kwargs):
         staff_name = request.query_params.get('staff_name', None)
         staff_id = request.query_params.get('staff_id', None)
+        staff_username = request.query_params.get('staff_telegram_username', None)
 
-        if not staff_id and not staff_name:  
+        if not staff_id and not staff_name and not staff_username:
             return Response({
                 "success": False,
                 "code": 400,
                 "message": "No params provided"
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        staff = Staff.objects.filter(Q(staff_id=staff_id) | Q(staff_name=staff_name)).first()
+
+        staff = Staff.objects.filter(Q(staff_id=staff_id) | Q(staff_name=staff_name) | Q(staff_telegram_username=staff_username)).first()
 
         if not staff:
             return Response({
@@ -715,55 +1041,142 @@ class StaffViewSet(viewsets.ModelViewSet):
 
         staff.save()
 
+        if 'staff_status' in request.data:
+            try:
+                staff_status_value = bool(int(request.data['staff_status']))
+
+                user = User.objects.filter(username=staff.staff_telegram_username).first()
+
+                if user:
+                    user.is_staff = staff_status_value
+                    user.save()
+                else:
+                    return Response({
+                        "success": False,
+                        "code": 404,
+                        "message": "Staff user not found"
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+            except ValueError:
+                return Response({
+                    "success": False,
+                    "code": 400,
+                    "message": "Invalid staff_status value provided"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'staff_user_pin' in request.data:
+            new_pin = request.data['staff_user_pin']
+
+            try:
+                # Hash the new pin
+                hashed_pin = hashlib.sha256(new_pin.encode('utf-8')).hexdigest()
+                base64_encoded_pin = base64.b64encode(hashed_pin.encode('utf-8')).decode('utf-8')
+
+                user = User.objects.filter(username=staff.staff_telegram_username).first()
+
+                if user:
+                    user.set_password(base64_encoded_pin)
+                    user.save()
+                else:
+                    return Response({
+                        "success": False,
+                        "code": 404,
+                        "message": "Staff user not found"
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+            except Exception as e:
+                return Response({
+                    "success": False,
+                    "code": 400,
+                    "message": f"Error while updating pin: {str(e)}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'staff_position' in request.data:  # Update permissions if staff role changes
+            new_role = request.data['staff_position']
+
+            try:
+                user = User.objects.filter(username=staff.staff_telegram_username).first()
+
+                if user:
+                    # Clear existing permissions
+                    user.user_permissions.clear()
+
+                    # Assign new permissions based on the role
+                    if new_role == "staff":
+                        per = [
+                            Permission.objects.get(codename='view_transactionhistory'),
+                            Permission.objects.get(codename='add_transactionhistory')
+                        ]
+                    elif new_role == "manager":
+                        per = [
+                            Permission.objects.get(codename='add_staff'),
+                            Permission.objects.get(codename='change_staff'),
+                            Permission.objects.get(codename='delete_staff'),
+                            Permission.objects.get(codename='view_staff'),
+                            Permission.objects.get(codename='view_branch'),
+                            Permission.objects.get(codename='add_transactionhistory'),
+                            Permission.objects.get(codename='view_transactionhistory')
+                        ]
+                    elif new_role == "admin":
+                        per = [
+                            Permission.objects.get(codename='add_staff'),
+                            Permission.objects.get(codename='change_staff'),
+                            Permission.objects.get(codename='delete_staff'),
+                            Permission.objects.get(codename='view_staff'),
+                            Permission.objects.get(codename='view_branch'),
+                            Permission.objects.get(codename='add_transactionhistory'),
+                            Permission.objects.get(codename='view_transactionhistory'),
+                            Permission.objects.get(codename='add_branch'),
+                            Permission.objects.get(codename='delete_branch'),
+                            Permission.objects.get(codename='change_branch'),
+                            Permission.objects.get(codename='view_company')
+                        ]
+                    else:
+                        return Response({
+                            "success": False,
+                            "code": 400,
+                            "message": "Invalid staff role provided"
+                        }, status=status.HTTP_400_BAD_REQUEST)
+
+                    # Add the new permissions
+                    user.user_permissions.add(*per)
+                    user.save()
+
+                else:
+                    return Response({
+                        "success": False,
+                        "code": 404,
+                        "message": "Staff user not found"
+                    }, status=status.HTTP_404_NOT_FOUND)
+
+            except Permission.DoesNotExist:
+                return Response({
+                    "success": False,
+                    "code": 500,
+                    "message": "Permission not found for the given role"
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         return Response({
             "success": True,
             "code": 200,
             "message": "Staff updated successfully"
-        },status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
 
-    def patch(self, request, *args, **kwargs):
-        staff_name = request.query_params.get('staff_name', None)
-        staff_id = request.query_params.get('staff_id', None)
-
-        if not staff_id and not staff_name:
-            return Response({
-                "success": False,
-                "code": 400,
-                "message": "No params provided"
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        staff = Staff.objects.filter(Q(staff_id=staff_id) | Q(staff_name=staff_name)).first()
-        if not staff:
-            return Response({
-                "success": False,
-                "code": 404,
-                "message": "Staff not found"
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        for attr, value in request.data.items():
-            setattr(staff, attr, value)
-
-        staff.save()
-
-        return Response({
-            "success": True,
-            "code": 200,
-            "message": "Staff updated successfully"
-        },status=status.HTTP_200_OK)
     
     def delete(self, request, *args, **kwargs):
         staff_name = request.query_params.get('staff_name')
         staff_id = request.query_params.get('staff_id')
+        staff_username = request.query_params.get('staff_telegram_username', None)
 
-        if not staff_name and not staff_id:
+        staff = Staff.objects.filter(Q(staff_id=staff_id) | Q(staff_name=staff_name) | Q(staff_telegram_username=staff_username)).first()
+
+        if not staff_name and not staff_id and not staff_username:
             return Response({
                 "success": False,
                 "code": 400,
                 "message": "No params provided"
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        staff = Staff.objects.filter(Q(staff_name=staff_name) | Q(staff_id=staff_id)).first()
-
         if not staff:
             return Response({
                 "success": False,
@@ -771,12 +1184,17 @@ class StaffViewSet(viewsets.ModelViewSet):
                 "message": "Staff not found"
             }, status=status.HTTP_404_NOT_FOUND)
 
+        user = User.objects.filter(username=staff.staff_telegram_username).first()
+        if user:
+            user.delete()
+
         staff.delete()
+
         return Response({
-            "success":True,
-            "code":200,
-            "message":"Staff deleted successfully"
-        },status=status.HTTP_200_OK)
+            "success": True,
+            "code": 200,
+            "message": "Staff deleted successfully"
+        }, status=status.HTTP_200_OK)
 
 class AssignBranchesViewSet(viewsets.ModelViewSet):
     
@@ -841,20 +1259,17 @@ class AssignBranchesViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def put(self, request, *args, **kwargs):
-        staff_name = request.data.get('staff_name')
-        staff_id = request.data.get('staff_id')
-        if not staff_name and not staff_id:
-            staff_name = request.query_params.get('staff_name')
-            staff_id = request.query_params.get('staff_id')
-        
-        if not staff_name and not staff_id:
+        staff_name = request.query_params.get('staff_name', None)
+        staff_id = request.query_params.get('staff_id', None)
+
+        if not staff_id and not staff_name:  
             return Response({
                 "success": False,
                 "code": 400,
                 "message": "No params provided"
             }, status=status.HTTP_400_BAD_REQUEST)
-
-        staff = Staff.objects.filter(Q(staff_name=staff_name) | Q(staff_id=staff_id)).first()
+        
+        staff = Staff.objects.filter(Q(staff_id=staff_id) | Q(staff_name=staff_name)).first()
 
         if not staff:
             return Response({
@@ -863,43 +1278,40 @@ class AssignBranchesViewSet(viewsets.ModelViewSet):
                 "message": "Staff not found"
             }, status=status.HTTP_404_NOT_FOUND)
 
-        branch_ids_str = request.data.get('branch_ids', None)
-        if not branch_ids_str:
-            return Response({
-                "success": False,
-                "code": 400,
-                "message": "No Branch IDs provided"
-            }, status=status.HTTP_400_BAD_REQUEST)
+        for attr, value in request.data.items():
+            setattr(staff, attr, value)
 
-        try:
-            branch_ids = [int(id_str) for id_str in branch_ids_str.split(',')]
-        except ValueError:
-            return Response({
-                "success": False,
-                "code": 400,
-                "message": "Invalid branch IDs provided"
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        branches = Branch.objects.filter(id__in=branch_ids)
-        if not branches:
-            return Response({
-                "success": False,
-                "code": 404,
-                "message": "No valid branches found"
-            }, status=status.HTTP_404_NOT_FOUND)
-
-        staff.branches.add(*branches)
         staff.save()
 
-        # Custom response
-        response_data = {
+        if 'staff_status' in request.data:
+            try:
+                user = User.objects.filter(username=staff.staff_telegram_username).first()
+
+                if user:
+                    # Convert staff_status to a proper boolean value
+                    new_is_staff_value = bool(int(request.data.get('staff_status')))
+                    user.is_staff = new_is_staff_value
+                    user.save()
+
+                    print(f"Updated User {user.username}: is_staff set to {new_is_staff_value}")
+
+                    refreshed_user = User.objects.get(username=user.username)
+                    print(f"Confirmed: User {refreshed_user.username} is_staff is now {refreshed_user.is_staff}")
+                else:
+                    print(f"No User found for staff_telegram_username: {staff.staff_telegram_username}")
+            except ValueError as e:
+                print(f"Error converting staff_status to boolean: {e}")
+                return Response({
+                    "success": False,
+                    "code": 400,
+                    "message": "Invalid staff_status value"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
             "success": True,
             "code": 200,
-            "message": "OK",
-            "data": StaffSerializer(staff).data,
-        }
-
-        return Response(response_data, status=status.HTTP_200_OK)
+            "message": "Staff updated successfully"
+        }, status=status.HTTP_200_OK)
 
     def delete(self, request, *args, **kwargs):
         staff_name = request.query_params.get('staff_name')
