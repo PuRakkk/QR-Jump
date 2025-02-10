@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>ABA QR</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="author" content="PayWay">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+</head>
+<body>
+        <div id="aba_main_modal" class="aba-modal">
+            <div class="aba-modal-content">
+                <form method="POST" target="aba_webservice" action="{{ api_key }}" id="aba_merchant_request">
+                    {% csrf_token %}
+                    <input type="hidden" name="req_time" value="{{ req_time }}">
+                    <input type="hidden" name="merchant_id" value="{{ merchant_id }}">
+                    <input type="hidden" name="tran_id" value="{{ tran_id }}">
+                    <input type="hidden" name="amount" value="{{ amount }}">
+                    <input type="hidden" name="payment_option" value="{{ payment_option }}">
+                    <input type="hidden" name="currency" value="{{ currency }}">
+                    <input type="hidden" name="continue_success_url" value="{{ continue_success_url }}">
+                    <input type="hidden" name="hash" value="{{ hash }}">
+                </form>
+            </div>
+        </div>
+    <div class="container" style="margin-top: 75px;margin: 0 auto;">
+        <div style="width: 200px;margin: 0 auto;">
+            <h2>TOTAL: {{ amount }}</h2>
+            <input type="button" id="checkout_button" value="Checkout Now">
+        </div>
+    </div>
+    <!— End Page Content —>
+
+    <!— Make a copy this javaScript to paste into your site—>
+    <!— Note: these javaScript files are using for only integration testing—>
+
+    <link rel="stylesheet" href="https://payway-staging.ababank.com/checkout-popup.html?file=css"/>-->
+    <script src="https://checkout.payway.com.kh/plugins/checkout2-0.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#checkout_button').click(function () {
+                AbaPayway.checkout();
+            });
+        });
+    </script>
+</body>
+</html>

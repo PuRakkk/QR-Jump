@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Branch</title>
+    <link rel="icon" href="{% static 'app/images/favicon.ico' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="{% static 'app/js/script.js' %}"></script>
+    <script src="{% static 'app/js/checking-token.js' %}"></script>
+    <script src="{% static 'app/js/active-token.js' %}"></script>
+</head>
+<body>
+    <div class="branch_container">
+        {% csrf_token %}
+            <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+            <input type="hidden" id="telegram_username" name="telegram_username">
+            <input type="hidden" id="telegram_id" name="telegram_id">
+        <div class="username_timestamp">
+            <div id="user-info-branch">Use in TG Bot</div>
+            <div class="time-stamp" id="datetime-index">{{ server_time }}</div>
+        </div>
+        <div>
+            <h1 id="h1-branch">Please select your branch first</h1>
+        
+        {% if branches %}
+            <ul class="branch-list">
+                {% for branch in branches %}
+                    <li class="branch-item">
+                        <a href="{% url 'storing_credentials' %}?staff_id={{ staff_id }}&com_id={{ com_id }}&branch_id={{ branch.id }}&telegram_username={{ telegram_username }}&bank_credentials={{ bank_credentials|join:',' }}"class="branch-link">
+                            <small class="small-label">Name: {{ branch.br_en_name }}</small><br>
+                            <small class="small-label">Email: {{ branch.br_email }}</small><br>
+                            <small class="small-label">Contact: {{ branch.br_contact }}</small><br>
+                            <small class="small-label">Status: {% if branch.br_status %}Active{% else %}Inactive{% endif %}</small>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No branches found.</p>
+        {% endif %}
+        </div>
+    </div>
+</body>
+</html>

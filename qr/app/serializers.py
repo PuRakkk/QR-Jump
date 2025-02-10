@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Company, Branch, Staff, TransactionHistory
+from .models import Company, Branch, Staff, TransactionHistory, BankCredentials
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -7,10 +7,20 @@ class CompanySerializer(serializers.ModelSerializer):
         model = Company
         fields = '__all__'
 
+class BankCredentialsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BankCredentials
+        fields = ['bank_name', 'api_key', 'public_key', 'merchant_id', 'is_active', 'created_at', 'updated_at']
+
 class BranchSerializer(serializers.ModelSerializer):
+    bank_credentials = BankCredentialsSerializer(many=True, read_only=True)
     class Meta:
         model = Branch
-        fields = '__all__'
+        fields = [
+            'id', 'com_id', 'br_kh_name', 'br_en_name', 'br_email', 
+            'br_password', 'br_contact', 'br_status', 'br_created_at',
+            'bank_credentials'
+        ]
 
 class StaffSerializer(serializers.ModelSerializer):
     branches = BranchSerializer(many=True, required=False)
@@ -38,3 +48,5 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = TransactionHistory
         fields = '__all__'
+
+

@@ -1,6 +1,35 @@
 from django.contrib import admin
 from .models import SuperAdmin
-from .models import Company, Branch, Staff, TransactionHistory
+from .models import Company, Branch, Staff, TransactionHistory, BankCredentials
+from django import forms
+
+class BankCredentialsForm(forms.ModelForm):
+    class Meta:
+        model = BankCredentials
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['api_key'].widget = forms.TextInput(attrs={'placeholder': 'Enter API Key'})
+        self.fields['public_key'].widget = forms.TextInput(attrs={'placeholder': 'Enter Public Key'})
+        self.fields['merchant_id'].widget = forms.TextInput(attrs={'placeholder': 'Enter Merchant ID'})
+
+@admin.register(BankCredentials)
+class BankCredentialsAdmin(admin.ModelAdmin):
+    form = BankCredentialsForm
+    list_display = ('branch', 'bank_name', 'is_active', 'truncated_api_key', 'truncated_public_key', 'truncated_merchant_id')
+
+    def truncated_api_key(self, obj):
+        return str(obj.api_key)[:20] + '...' if obj.api_key else ''
+    truncated_api_key.short_description = 'API Key'
+
+    def truncated_public_key(self, obj):
+        return str(obj.public_key)[:20] + '...' if obj.public_key else ''
+    truncated_public_key.short_description = 'Public Key'
+
+    def truncated_merchant_id(self, obj):
+        return str(obj.merchant_id)[:20] + '...' if obj.merchant_id else ''
+    truncated_merchant_id.short_description = 'Merchant ID'
 
 admin.site.register(Company)
 admin.site.register(Branch)
