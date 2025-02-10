@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const userInfoElementIndex = document.getElementById("user-info-index");
                 
-
                 if (userInfoElementIndex) {
                     userInfoElementIndex.innerText = `Welcome: ${first_name} ${last_name}`;
                 }
@@ -29,9 +28,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (userInfoElementUSDKHR) {
                     userInfoElementUSDKHR.innerText=  `User: ${first_name} ${last_name}`;
                 }
-                const userInfoCreatePin = document.getElementById("user-info-create-pin-page");
-                if (userInfoCreatePin){
-                    userInfoCreatePin.innerText = `Welcome:${first_name} ${last_name} to QR Jump`;
+                const userInfoBranch = document.getElementById("user-info-branch");
+                if (userInfoBranch){
+                    userInfoBranch.innerText = `User: ${first_name} ${last_name}`;
                 }
                     
             } else {
@@ -136,19 +135,16 @@ function logout() {
     });
 }
 function goToConfirmPage(currency) {
-    // Get the input amount and convert it to a number
     const amountInput = currency === 'USD' 
         ? document.getElementById('usd-amount').value 
         : document.getElementById('khr-amount').value;
 
-    // Remove spaces and format the amount
     const amountWithoutSpaces = amountInput.replace(/\s/g, '');
 
     const amount = parseFloat(amountWithoutSpaces);
 
     if (currency === 'USD') {
         if (!isNaN(amount) && amount >= 0.01) {
-            // Format the amount to 2 decimal places for USD
             const formattedAmount = amount.toFixed(2);
             const confirmUrl = `/confirm-transaction/?currency=${currency}&amount=${formattedAmount}`;
             window.location.href = confirmUrl;
@@ -158,7 +154,7 @@ function goToConfirmPage(currency) {
         }
     } else if (currency === 'KHR') {
         if (!isNaN(amount) && amount >= 100) {
-            const formattedAmount = formatWithSpaces(amount); // This is still for display purposes
+            const formattedAmount = formatWithSpaces(amount); 
             const confirmUrl = `/confirm-transaction/?currency=${currency}&amount=${formattedAmount}`;
             window.location.href = confirmUrl;
         } else {
@@ -173,28 +169,22 @@ function formatWithSpaces(value) {
 }
 
 function removeSpaces(value) {
-    return value.replace(/\s+/g, '');  // Removes all spaces
+    return value.replace(/\s+/g, ''); 
 }
 
 function updateDateTime() {
     const now = new Date();
     
-    // Get formatted date parts
     const options = { month: 'short', day: '2-digit', year: 'numeric' };
     const formattedDate = now.toLocaleDateString('en-US', options);
     
-    // Get hours, minutes, and AM/PM format
     let hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     
-    // Convert to 12-hour format
     hours = hours % 12 || 12;
     
-    // Combine all parts
     const formattedDateTime = `${formattedDate} ${hours}:${minutes} ${ampm}`;
-
-    
 
     document.getElementById("datetime-index").innerText = formattedDateTime;
 
@@ -225,48 +215,42 @@ function disableBackButton() {
 function redirectToQRPage(method, amount, currency) {
     console.log("Redirect function called for:", method, amount, currency);
 
-    // Get the telegram_id and telegram_username from Telegram Web App
-    const telegramId = Telegram.WebApp.initDataUnsafe?.user?.id;  // Get user ID from Telegram
-    const telegramUsername = Telegram.WebApp.initDataUnsafe?.user?.username; // Get username from Telegram
+    const telegramId = Telegram.WebApp.initDataUnsafe?.user?.id;
+    const telegramUsername = Telegram.WebApp.initDataUnsafe?.user?.username;
 
     if (!telegramId || !telegramUsername) {
         alert("Telegram ID or Username is missing.");
-        return; // Stop if Telegram ID or username is missing
+        return;
     }
 
     withoutspaceAmount = removeSpaces(amount);
 
     if (withoutspaceAmount && currency) {
-        // Create a form dynamically
         const form = document.createElement("form");
-        form.method = "POST";  // POST method
-        form.action = `/qr-generate/${method}/${withoutspaceAmount}/${currency}/`;  // Set your URL for QR generation
+        form.method = "POST";
+        form.action = `/qr-generate/${method}/${withoutspaceAmount}/${currency}/`; 
 
-        // Add the CSRF token as a hidden input
         const csrfTokenInput = document.createElement("input");
         csrfTokenInput.type = "hidden";
         csrfTokenInput.name = "csrfmiddlewaretoken";
-        csrfTokenInput.value = document.querySelector('[name="csrfmiddlewaretoken"]').value; // Get the CSRF token from the page
+        csrfTokenInput.value = document.querySelector('[name="csrfmiddlewaretoken"]').value;
 
-        // Create hidden inputs for telegram_id and telegram_username
         const telegramIdInput = document.createElement("input");
         telegramIdInput.type = "hidden";
         telegramIdInput.name = "telegram_id";
-        telegramIdInput.value = telegramId;  // Set telegram ID
+        telegramIdInput.value = telegramId; 
 
         const telegramUsernameInput = document.createElement("input");
         telegramUsernameInput.type = "hidden";
         telegramUsernameInput.name = "telegram_username";
-        telegramUsernameInput.value = telegramUsername;  // Set telegram username
+        telegramUsernameInput.value = telegramUsername;
 
-        // Append the hidden inputs to the form
         form.appendChild(csrfTokenInput);
         form.appendChild(telegramIdInput);
         form.appendChild(telegramUsernameInput);
 
-        // Append form to body and submit
         document.body.appendChild(form);
-        form.submit();  // Submit the form via POST request
+        form.submit(); 
 
     } else {
         alert("Please enter both amount and currency.");

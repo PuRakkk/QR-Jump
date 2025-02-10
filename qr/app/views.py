@@ -27,6 +27,8 @@ import jwt
 from django.http import JsonResponse
 from django.contrib.auth import login
 from django.contrib.auth.models import User
+import hmac
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +103,7 @@ def check_login(request):
                                 if staff_user_pin == user_pin and staff_status is True:
                                     user, created = User.objects.get_or_create(username=telegram_username)
                                     login(request, user)
-                                    return redirect(f'/usd-transaction/?telegram_username={telegram_username}&staff_user_pin={staff_user_pin}') 
+                                    return redirect(f'/select-branchs/?telegram_username={telegram_username}&staff_user_pin={staff_user_pin}') 
                         else:
                             error_message = "Your account is inactive. Please contact admin"
                     except requests.exceptions.RequestException as e:
@@ -113,6 +115,113 @@ def check_login(request):
                 print(f"Error: {str(e)}")
 
     return render(request, 'app/index.html', {'error_message': error_message})
+
+def select_branchs(request):
+    telegram_username = request.GET.get('telegram_username')
+    refresh_token = request.session.get('refresh_token')
+    access_token = request.session.get('access_token')
+
+    if not refresh_token:
+        return redirect('/')
+
+    try:
+        api = f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_username={telegram_username}"
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(api, headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+            if 'data' in data and data['data']:
+                branches = data['data'][0].get('branches', [])
+                staff_id = data['data'][0]['staff_id']
+                com_id = data['data'][0]['com_id']
+
+                if branches:
+                    branch_id = branches[0]['id']
+                    bank_credentials = {}
+                    
+                    for bank in branches[0]['bank_credentials']:
+                        bank_name = bank['bank_name'].lower()
+                        bank_credentials[bank_name] = {
+                            'api_key': bank['api_key'],
+                            'public_key': bank['public_key'],
+                            'merchant_id': bank['merchant_id']
+                        }
+                        
+                if len(branches) == 1:
+                    request.session['staff_id'] = staff_id
+                    request.session['com_id'] = com_id
+                    request.session['branch_id'] = branch_id
+                    request.session['bank_credentials'] = bank_credentials
+                    return render(request, 'app/usd-transaction.html')
+                
+                elif len(branches) > 1:
+                    return render(request, 'app/select-branchs.html', {
+                        'branches': branches,
+                        'staff_id': staff_id,
+                        'com_id': com_id,
+                        'telegram_username': telegram_username,
+                        'bank_credentials': bank_credentials
+                    })
+                
+                else:
+                    return HttpResponse("Branch not found", status=400)
+            else:
+                return redirect('/')
+        else:
+            return HttpResponse(f"Error fetching staff information: {response.status_code}", status=400)
+
+    except requests.exceptions.RequestException as e:
+        return HttpResponse(f"Error fetching staff information: {str(e)}", status=500)
+    
+def storing_credentials(request):
+    refresh_token = request.session.get('refresh_token')
+    staff_id = request.GET.get('staff_id')
+    com_id = request.GET.get('com_id')
+    telegram_username = request.GET.get('telegram_username')
+    branch_id = request.GET.get('branch_id')
+    try:
+        branch = Branch.objects.get(id=branch_id)
+        
+        bank_credentials = {}
+        for bank in branch.bank_credentials.all():
+            bank_name = bank.bank_name.lower()
+            bank_credentials[bank_name] = {
+                'api_key': bank.api_key,
+                'public_key': bank.public_key,
+                'merchant_id': bank.merchant_id
+            }
+    except Branch.DoesNotExist:
+        return redirect('/')
+
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
+
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
+
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"Error refreshing token: {str(e)}")
+        return redirect('/')
+
+    if not staff_id or not com_id or not telegram_username or not branch_id:
+        return redirect('/')
+    else:
+        request.session['staff_id'] = staff_id
+        request.session['com_id'] = com_id
+        request.session['telegram_username'] = telegram_username
+        request.session['branch_id'] = branch_id
+        request.session['bank_credentials'] = bank_credentials
+
+    return render(request, 'app/usd-transaction.html')
 
 def update_session(request):
     message = None
@@ -165,9 +274,6 @@ def home(request):
     return render(request, 'app/index.html')
 
 def khr_transaction_page(request):
-    telegram_username = request.GET.get('telegram_username')
-    staff_user_pin = request.GET.get('staff_user_pin')
-
     refresh_token = request.session.get('refresh_token')
     if not refresh_token:
         return redirect('/')
@@ -190,16 +296,9 @@ def khr_transaction_page(request):
         print(f"Error refreshing token: {str(e)}")
         return redirect('/')
 
-    context = {
-        'telegram_username': telegram_username,
-        'staff_user_pin': staff_user_pin,
-    }
-    return render(request, "app/khr-transaction.html", context)
+    return render(request, "app/khr-transaction.html")
 
 def usd_transaction_page(request):
-    telegram_username = request.GET.get('telegram_username')
-    staff_user_pin = request.GET.get('staff_user_pin')
-
     refresh_token = request.session.get('refresh_token')
     if not refresh_token:
         return redirect('/')
@@ -222,16 +321,11 @@ def usd_transaction_page(request):
         print(f"Error refreshing token: {str(e)}")
         return redirect('/')
 
-    context = {
-        'access_token': new_access_token,
-        'refresh_token': new_refresh_token,
-        'telegram_username': telegram_username,
-        'staff_user_pin': staff_user_pin,
-    }
-    return render(request, "app/usd-transaction.html", context)
+    return render(request, "app/usd-transaction.html")
 
 def confirm_transaction(request):
     refresh_token = request.session.get('refresh_token')
+    bank_credentials = request.session.get('bank_credentials')
     if not refresh_token:
         return redirect('/')
 
@@ -261,12 +355,27 @@ def confirm_transaction(request):
         'currency': currency,
         'amount': amount,
         'server_time': server_time,
+        'bank_credentials': bank_credentials
     })
     
 def check_token_status(request):
     access_token = request.session.get('access_token')
     if not access_token:
         return JsonResponse({"redirect_required": True})
+
+    # try:
+    #     api = "http://127.0.0.1:8000/api/v1/staff/"
+
+    #     headers = {
+    #         'Authorization': f'Bearer {access_token}'
+    #     }
+    #     Response = requests.get(api, headers=headers)
+
+    #     if Response.status_code == 403:
+    #         return JsonResponse({"redirect_required": True})
+
+    # except Exception as e:
+    #     return JsonResponse({"redirect_required": True})
 
     try:
         payload = jwt.decode(access_token, options={"verify_signature": False}, algorithms=["HS256"])
@@ -308,6 +417,163 @@ def fetch_all_users(request):
             'users': list(users),
         }, status=status.HTTP_200_OK)
     
+# def payment_success(request):
+#     return render(request, 'app/payment-success.html')
+
+# def payment_callback(request):
+#     if request.method == 'POST':
+#         transaction_id = request.POST.get('tran_id')
+#         payment_status = request.POST.get('status')
+        
+#         logger.info(f"Transaction ID: {transaction_id}, Status: {payment_status}")
+
+#         if payment_status == 00:
+#             logger.info(f"Transaction {transaction_id} successfully validated.")
+#         else:
+#             logger.error(f"Payment failed for transaction {transaction_id}.")
+
+#         return JsonResponse({"message": "Payment callback received."})
+#     return JsonResponse({"error": "Invalid request"}, status=400)
+
+# def aba_qr_generate(request, method, amount, currency):
+#     refresh_token = request.session.get('refresh_token')
+#     if not refresh_token:
+#         return redirect('/')
+
+#     api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+#     data = {'refresh': refresh_token}
+
+#     try:
+#         response = requests.post(api, data=data)
+#         if response.status_code == 200:
+#             new_access_token = response.json().get('access')
+#             new_refresh_token = response.json().get('refresh')
+
+#             request.session['access_token'] = new_access_token
+#             request.session['refresh_token'] = new_refresh_token
+#             request.session.save()
+#         else:
+#             return redirect('/')
+#     except Exception as e:
+#         print(f"Error refreshing token: {str(e)}")
+#         return redirect('/')
+#     utc_now = datetime.now(pytz.utc)
+#     formatted_time = utc_now.strftime('%Y%m%d%H%M%S')
+#     ret_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_callback/"
+#     return_url = base64.b64encode(ret_url.encode()).decode()
+
+#     success_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_success/"
+#     bank_credentials = request.session.get('bank_credentials')
+#     for bank_name, creds in bank_credentials.items():
+#         if bank_name == 'aba':
+#             merchant_id = creds['merchant_id']
+#             api_key = creds['api_key']
+#             public_key = creds['public_key']
+    
+#     API_KEY = api_key
+#     MERCHANT_ID = merchant_id
+#     PUBLIC_KEY = public_key
+#     REQ_TIME = formatted_time
+#     TRAN_ID = formatted_time
+#     AMOUNT = amount
+#     print("Amount",AMOUNT)
+#     CURRENCY = currency
+#     CONTINUE_SUCCESS_URL = success_url
+#     PAYMENT_OPTION = 'abapay'
+#     STR_DATA = f'{REQ_TIME}{MERCHANT_ID}{TRAN_ID}{AMOUNT}{PAYMENT_OPTION}{CONTINUE_SUCCESS_URL}{CURRENCY}'
+#     HASH = base64.b64encode(hmac.new(PUBLIC_KEY.encode(), STR_DATA.encode(), hashlib.sha512).digest()).decode()
+
+#     context = {
+#         'api_key': API_KEY,
+#         'req_time': REQ_TIME,
+#         'merchant_id': MERCHANT_ID,
+#         'tran_id': TRAN_ID,
+#         'amount': AMOUNT,
+#         'payment_option': PAYMENT_OPTION,
+#         'currency': CURRENCY,
+#         'continue_success_url': CONTINUE_SUCCESS_URL,
+#         'hash': HASH,
+#     }
+#     print("This is context:",context)
+#     return render (request, 'app/aba-qr-generate.html',context=context)
+
+def testing_page(request, method, amount, currency):
+    refresh_token = request.session.get('refresh_token')
+    if not refresh_token:
+        return redirect('/')
+
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
+
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
+
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"Error refreshing token: {str(e)}")
+        return redirect('/')
+    
+    success_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_success/"
+    utc_now = datetime.now(pytz.utc)
+    formatted_time = utc_now.strftime('%Y%m%d%H%M%S')
+    bank_credentials = request.session.get('bank_credentials')
+    for bank_name, creds in bank_credentials.items():
+        if bank_name == 'aba':
+            merchant_id = creds['merchant_id']
+            api_key = creds['api_key']
+            public_key = creds['public_key']
+    
+    API_KEY = api_key
+    MERCHANT_ID = merchant_id
+    PUBLIC_KEY = public_key
+    REQ_TIME = formatted_time
+    TRAN_ID = formatted_time
+    AMOUNT = amount
+    print("Amount",AMOUNT)
+    CURRENCY = currency
+    CONTINUE_SUCCESS_URL = success_url
+    PAYMENT_OPTION = 'abapay'
+    STR_DATA = f'{REQ_TIME}{MERCHANT_ID}{TRAN_ID}{AMOUNT}{PAYMENT_OPTION}{CONTINUE_SUCCESS_URL}{CURRENCY}'
+    HASH = base64.b64encode(hmac.new(PUBLIC_KEY.encode(), STR_DATA.encode(), hashlib.sha512).digest()).decode()
+
+    if request.method == 'POST':
+        api_url = API_KEY
+
+        payload = {
+            'req_time': REQ_TIME,
+            'merchant_id': MERCHANT_ID,
+            'tran_id': TRAN_ID,
+            'amount': AMOUNT,
+            'payment_option': PAYMENT_OPTION,
+            'currency': CURRENCY,
+            'continue_success_url': CONTINUE_SUCCESS_URL,
+            'hash':HASH
+        }
+        headers = {
+            'Content-Type': 'multiple/form-data'
+        }
+    try:
+        response = requests.post(api_url, data=payload, headers=headers)  
+
+        print("Response Status Code:", response.status_code)
+        print("Response Content:", response.text)
+
+        response_data = response.json()
+        print("Response Data:", response_data)
+    except ValueError:
+        print("Invalid JSON response. Content returned:", response.text)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Request error: {e}")
+
+    return render(request, 'app/testing.html')
 
 def qr_generate(request, method, amount, currency):
     refresh_token = request.session.get('refresh_token')
@@ -345,6 +611,11 @@ def qr_generate(request, method, amount, currency):
 @csrf_protect
 def qr_generate_page(request, method, amount, currency):
     refresh_token = request.session.get('refresh_token')
+    com_id = request.session.get('com_id')
+    branch_ids = request.session.get('branch_id')
+    staff_id = request.session.get('staff_id')
+    if not com_id or not branch_ids or not staff_id or not method or not amount or not currency:
+        return redirect('/')
     if not refresh_token:
         return redirect('/')
 
@@ -368,33 +639,10 @@ def qr_generate_page(request, method, amount, currency):
     if request.method == 'POST':
         telegram_id = request.POST.get('telegram_id')
         username = request.POST.get('telegram_username')
+        access_token = request.session.get('access_token')
 
         if not telegram_id or not username:
             return HttpResponse("Telegram ID or Username is missing", status=400)
-        
-        access_token = request.session.get('access_token')
-        if not access_token:
-            return redirect('/')
-        
-        try:
-            response = requests.get(f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_username={username}", headers={'Authorization': f'Bearer {access_token}'})
-            data = response.json()
-            if 'data' in data and data['data']:
-                staff_id = data['data'][0]['staff_id']
-                com_id = data['data'][0]['com_id']
-                branches = data['data'][0]['branches']
-                if branches:
-                    branch_ids = branches[0]['id']
-
-                if not com_id:
-                    return HttpResponse("Company not found", status=400)
-                elif not branches:
-                    return HttpResponse("Branch not found", status=400)
-            else:
-                return HttpResponse("Error fetching staff", status=500)
-        except Exception as e:
-            return HttpResponse(f"Error fetching staff: {e}", status=500)
-        
     try:
         if not com_id:
             return HttpResponse("Company not found", status=400)
@@ -431,9 +679,11 @@ def qr_generate_page(request, method, amount, currency):
                         'currency': currency,
                     })
             else:
-                return HttpResponse("Error saving transaction", status=500)
+                return redirect('/')
+
         except Exception as e:
-            return HttpResponse(f"Error saving transaction: {e}", status=500)
+            return redirect('/')
+
     except Company.DoesNotExist:
         return HttpResponse("Company not found", status=400)
 
@@ -496,7 +746,7 @@ def transaction_history(request):
                     else:
                         return render(request, 'app/transaction-history.html', {'error': 'Invalid API response format.'})
                 else:
-                    return render(request, 'app/transaction-history.html', {'error': 'Failed to fetch transaction history from the API.'})
+                    return redirect('/')
             except Exception as e:
                 return render(request, 'app/transaction-history.html', {'error': f'An error occurred: {str(e)}'})
         else:
@@ -719,7 +969,7 @@ class BranchFilter(filters.FilterSet):
         fields = ['com_id', 'br_id', 'br_kh_name', 'br_en_name', 'br_email', 'br_contact', 'br_status']
 
 class BranchViewSet(viewsets.ModelViewSet):
-    queryset = Branch.objects.all()
+    queryset = Branch.objects.all().prefetch_related('bank_credentials')
     serializer_class = BranchSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = BranchFilter

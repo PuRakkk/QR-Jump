@@ -13,12 +13,19 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 TIME_ZONE = 'UTC'
 USE_TZ = True
+
+FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY')
+
+if not FIELD_ENCRYPTION_KEY:
+    raise ValueError("FIELD_ENCRYPTION_KEY environment variable is not set.")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -29,10 +36,10 @@ SECRET_KEY = 'django-insecure-^11zc703ec=i%zisn(bnnc483f362)x_6-ztxjam&neo3c_b42
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["b8a1-167-179-41-221.ngrok-free.app", "127.0.0.1"]
+ALLOWED_HOSTS = ["da9b-167-179-41-221.ngrok-free.app", "127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://b8a1-167-179-41-221.ngrok-free.app',  # Add all active ngrok URLs
+    'https://da9b-167-179-41-221.ngrok-free.app',  # Add all active ngrok URLs
 ]
 
 
@@ -164,7 +171,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=600),  # Lifetime for access token
+    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=10),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,

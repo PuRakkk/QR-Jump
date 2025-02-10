@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.timezone import now
 from django.utils.timezone import localtime
+from encrypted_model_fields.fields import EncryptedTextField
 
 class Company(models.Model):
     com_id = models.AutoField(primary_key=True)
@@ -73,6 +74,34 @@ class TransactionHistory(models.Model):
 
     def __str__(self):
         return f"{self.th_telegram_id} - {self.com_id} - {self.br_id} - {self.staff_id} - {localtime(self.th_datetime).strftime('%Y-%m-%d %H:%M:%S')} - {self.th_amount} - {self.th_payment_type} - {localtime(self.th_created_at).strftime('%Y-%m-%d %H:%M:%S')}"
+    
+class BankCredentials(models.Model):
+    BANK_CHOICES = [
+        ('aba', 'ABA Bank'),
+        ('acleda', 'Acleda Bank'),
+        ('wing', 'Wing Bank'),
+        ('bakong', 'Bakong Bank'),
+    ]
+
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name='bank_credentials'
+    )
+    bank_name = models.CharField(max_length=50, choices=BANK_CHOICES)
+    api_key = EncryptedTextField(models.CharField(max_length=255))
+    public_key = EncryptedTextField(models.CharField(max_length=255))
+    merchant_id = EncryptedTextField(models.CharField(max_length=255))
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'qrjump_bank_credentials_storage'
+        unique_together = [('branch', 'bank_name')] 
+
+    def __str__(self):
+        return f"{self.branch.br_en_name} - {self.get_bank_name_display()}"
     
 class SuperAdmin(models.Model):
     superadmin_id = models.AutoField(primary_key=True)

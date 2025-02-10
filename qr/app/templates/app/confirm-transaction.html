@@ -9,7 +9,7 @@
     <link rel="stylesheet" type="text/css" href="{% static 'app/css/style.css' %}">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="{% static 'app/js/script.js' %}"></script>
-    <script src="{% static 'app/js/checking-token.js' %}"></script>
+    <script src="{% static 'app/js/checking-token.js' %}"></script> 
     <script src="{% static 'app/js/active-token.js' %}"></script>
 
 </head>
@@ -24,29 +24,18 @@
             <p class="format-value">{{ amount }}</p>           
         </div>
 
-        <!-- Pass amount and currency to the buttons -->
         <form action="" method="POST">
             {% csrf_token %}
             <input type="hidden" id="telegram_username" name="telegram_username">
             <input type="hidden" id="telegram_id" name="telegram_id">
             <div class="bank-type">
                 <p class="bank-label">Select payment</p>
-    
-                <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('Wing', '{{ amount }}', '{{ currency }}');">
-                    <img src="{% static 'app/images/wing-logo.png' %}" alt="Wing Logo" style="width: 80px; height: 80px; border-radius: 5px;">
-                </button>
-    
-                <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('ABA', '{{ amount }}', '{{ currency }}');">
-                    <img src="{% static 'app/images/aba-logo.png' %}" alt="ABA Logo" style="width: 80px; height: 80px; border-radius: 5px;">
-                </button>
-    
-                <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('Canadia', '{{ amount }}', '{{ currency }}');">
-                    <img src="{% static 'app/images/canadia-logo.png' %}" alt="Canadia Logo" style="width: 80px; height: 80px; border-radius: 5px;">
-                </button>
-    
-                <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('KHQR', '{{ amount }}', '{{ currency }}');">
-                    <img src="{% static 'app/images/khqr-logo.png' %}" alt="KHQR Logo" style="width: 80px; height: 80px; border-radius: 5px;">
-                </button>
+
+                {% for bank_name, creds in bank_credentials.items %}
+                    <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('{{ bank_name }}', '{{ amount }}', '{{ currency }}');">
+                        <img src="{% static 'app/images/'|add:bank_name|lower|add:'-logo.png' %}" alt="{{ bank_name }} Logo" style="width: 80px; height: 80px; border-radius: 5px;">
+                    </button>
+                {% endfor %}
             </div>
     
             <div class="cancel-btn-class">
