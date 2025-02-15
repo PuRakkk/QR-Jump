@@ -44,16 +44,15 @@
                         <button type="button" class="close-history-btn" onclick="refreshAccessToken(); goBackToTransactionPageFromHistoryPage('{{ transaction.th_currency }}');">Back</button>
                         <h1>Transaction History</h1>
                     </div>
-    {% endif %}
+        {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
         {% else %}
             <div class="back-btn-his-text">
                 <button type="button" class="close-history-btn" onclick="refreshAccessToken(); goBackToTransactionPageFromHistoryPageIfNoTran();">Back</button>
-                <h1>Transaction History</h1>
+                <h1 style="font-size: 4;">No transactions</h1>
             </div>
-            <p>No transactions found</p>
         {% endif %}
     </div>
 </body>

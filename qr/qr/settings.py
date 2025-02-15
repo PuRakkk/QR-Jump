@@ -36,10 +36,10 @@ SECRET_KEY = 'django-insecure-^11zc703ec=i%zisn(bnnc483f362)x_6-ztxjam&neo3c_b42
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["da9b-167-179-41-221.ngrok-free.app", "127.0.0.1"]
+ALLOWED_HOSTS = ["f748-110-235-223-133.ngrok-free.app", "127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://da9b-167-179-41-221.ngrok-free.app',  # Add all active ngrok URLs
+    'https://f748-110-235-223-133.ngrok-free.app',  # Add all active ngrok URLs
 ]
 
 
@@ -171,11 +171,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=10),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
-}   
+} 
 
 LOGIN_URL = '/check_login/'
 LOGIN_REDIRECT_URL = '/usd-transaction/'
