@@ -39,9 +39,9 @@ urlpatterns = [
     path('khr-transaction/', login_required(views.khr_transaction_page), name='khr_transaction_page'),
     path('confirm-transaction/', login_required(views.confirm_transaction), name='confirm_transaction_page'),
     path('testing_page/<str:method>/<str:amount>/<str:currency>/', views.testing_page, name='testing_page'),
-    # path('aba-qr-generate/<str:method>/<str:amount>/<str:currency>/', login_required(views.aba_qr_generate), name='aba_qr_generate'),
-    # path('payment_callback/', views.payment_callback, name='payment_callback'),
-    # path('payment_success/', views.payment_success, name='payment_success'),
+    path('aba-qr-generate/<str:method>/<str:amount>/<str:currency>/', login_required(views.aba_qr_generate), name='aba_qr_generate'),
+    path('payment_callback/', views.payment_callback, name='payment_callback'),
+    path('payment_success/', views.payment_success, name='payment_success'),
     path('qr-generate/<str:method>/<str:amount>/<str:currency>/', login_required(views.qr_generate_page), name='qr_generate_page'),
     path('generate_qr/<str:method>/<str:amount>/<str:currency>/', login_required(views.qr_generate), name='generate_qr'),
     path('transaction-history/', login_required(views.transaction_history), name='transaction-history'),
@@ -54,5 +54,5 @@ urlpatterns = [
     path('update-session/', views.update_session, name='update_session'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-]
+    ]
 

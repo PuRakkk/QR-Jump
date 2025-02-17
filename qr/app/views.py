@@ -116,6 +116,8 @@ def check_login(request):
 
     return render(request, 'app/index.html', {'error_message': error_message})
 
+
+
 def select_branchs(request):
     telegram_username = request.GET.get('telegram_username')
     refresh_token = request.session.get('refresh_token')
@@ -417,85 +419,85 @@ def fetch_all_users(request):
             'users': list(users),
         }, status=status.HTTP_200_OK)
     
-# def payment_success(request):
-#     return render(request, 'app/payment-success.html')
+def payment_success(request):
+    return render(request, 'app/payment-success.html')
 
-# def payment_callback(request):
-#     if request.method == 'POST':
-#         transaction_id = request.POST.get('tran_id')
-#         payment_status = request.POST.get('status')
+def payment_callback(request):
+    if request.method == 'POST':
+        transaction_id = request.POST.get('tran_id')
+        payment_status = request.POST.get('status')
         
-#         logger.info(f"Transaction ID: {transaction_id}, Status: {payment_status}")
+        logger.info(f"Transaction ID: {transaction_id}, Status: {payment_status}")
 
-#         if payment_status == 00:
-#             logger.info(f"Transaction {transaction_id} successfully validated.")
-#         else:
-#             logger.error(f"Payment failed for transaction {transaction_id}.")
+        if payment_status == 00:
+            logger.info(f"Transaction {transaction_id} successfully validated.")
+        else:
+            logger.error(f"Payment failed for transaction {transaction_id}.")
 
-#         return JsonResponse({"message": "Payment callback received."})
-#     return JsonResponse({"error": "Invalid request"}, status=400)
+        return JsonResponse({"message": "Payment callback received."})
+    return JsonResponse({"error": "Invalid request"}, status=400)
 
-# def aba_qr_generate(request, method, amount, currency):
-#     refresh_token = request.session.get('refresh_token')
-#     if not refresh_token:
-#         return redirect('/')
+def aba_qr_generate(request, method, amount, currency):
+    refresh_token = request.session.get('refresh_token')
+    if not refresh_token:
+        return redirect('/')
 
-#     api = "http://127.0.0.1:8000/api/v1/token/refresh/"
-#     data = {'refresh': refresh_token}
+    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    data = {'refresh': refresh_token}
 
-#     try:
-#         response = requests.post(api, data=data)
-#         if response.status_code == 200:
-#             new_access_token = response.json().get('access')
-#             new_refresh_token = response.json().get('refresh')
+    try:
+        response = requests.post(api, data=data)
+        if response.status_code == 200:
+            new_access_token = response.json().get('access')
+            new_refresh_token = response.json().get('refresh')
 
-#             request.session['access_token'] = new_access_token
-#             request.session['refresh_token'] = new_refresh_token
-#             request.session.save()
-#         else:
-#             return redirect('/')
-#     except Exception as e:
-#         print(f"Error refreshing token: {str(e)}")
-#         return redirect('/')
-#     utc_now = datetime.now(pytz.utc)
-#     formatted_time = utc_now.strftime('%Y%m%d%H%M%S')
-#     ret_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_callback/"
-#     return_url = base64.b64encode(ret_url.encode()).decode()
+            request.session['access_token'] = new_access_token
+            request.session['refresh_token'] = new_refresh_token
+            request.session.save()
+        else:
+            return redirect('/')
+    except Exception as e:
+        print(f"Error refreshing token: {str(e)}")
+        return redirect('/')
+    utc_now = datetime.now(pytz.utc)
+    formatted_time = utc_now.strftime('%Y%m%d%H%M%S')
+    ret_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_callback/"
+    return_url = base64.b64encode(ret_url.encode()).decode()
 
-#     success_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_success/"
-#     bank_credentials = request.session.get('bank_credentials')
-#     for bank_name, creds in bank_credentials.items():
-#         if bank_name == 'aba':
-#             merchant_id = creds['merchant_id']
-#             api_key = creds['api_key']
-#             public_key = creds['public_key']
+    success_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_success/"
+    bank_credentials = request.session.get('bank_credentials')
+    for bank_name, creds in bank_credentials.items():
+        if bank_name == 'aba':
+            merchant_id = creds['merchant_id']
+            api_key = creds['api_key']
+            public_key = creds['public_key']
     
-#     API_KEY = api_key
-#     MERCHANT_ID = merchant_id
-#     PUBLIC_KEY = public_key
-#     REQ_TIME = formatted_time
-#     TRAN_ID = formatted_time
-#     AMOUNT = amount
-#     print("Amount",AMOUNT)
-#     CURRENCY = currency
-#     CONTINUE_SUCCESS_URL = success_url
-#     PAYMENT_OPTION = 'abapay'
-#     STR_DATA = f'{REQ_TIME}{MERCHANT_ID}{TRAN_ID}{AMOUNT}{PAYMENT_OPTION}{CONTINUE_SUCCESS_URL}{CURRENCY}'
-#     HASH = base64.b64encode(hmac.new(PUBLIC_KEY.encode(), STR_DATA.encode(), hashlib.sha512).digest()).decode()
+    API_KEY = api_key
+    MERCHANT_ID = merchant_id
+    PUBLIC_KEY = public_key
+    REQ_TIME = formatted_time
+    TRAN_ID = formatted_time
+    AMOUNT = amount
+    print("Amount",AMOUNT)
+    CURRENCY = currency
+    CONTINUE_SUCCESS_URL = success_url
+    PAYMENT_OPTION = 'abapay'
+    STR_DATA = f'{REQ_TIME}{MERCHANT_ID}{TRAN_ID}{AMOUNT}{PAYMENT_OPTION}{CONTINUE_SUCCESS_URL}{CURRENCY}'
+    HASH = base64.b64encode(hmac.new(PUBLIC_KEY.encode(), STR_DATA.encode(), hashlib.sha512).digest()).decode()
 
-#     context = {
-#         'api_key': API_KEY,
-#         'req_time': REQ_TIME,
-#         'merchant_id': MERCHANT_ID,
-#         'tran_id': TRAN_ID,
-#         'amount': AMOUNT,
-#         'payment_option': PAYMENT_OPTION,
-#         'currency': CURRENCY,
-#         'continue_success_url': CONTINUE_SUCCESS_URL,
-#         'hash': HASH,
-#     }
-#     print("This is context:",context)
-#     return render (request, 'app/aba-qr-generate.html',context=context)
+    context = {
+        'api_key': API_KEY,
+        'req_time': REQ_TIME,
+        'merchant_id': MERCHANT_ID,
+        'tran_id': TRAN_ID,
+        'amount': AMOUNT,
+        'payment_option': PAYMENT_OPTION,
+        'currency': CURRENCY,
+        'continue_success_url': CONTINUE_SUCCESS_URL,
+        'hash': HASH,
+    }
+    print("This is context:",context)
+    return render (request, 'app/aba-qr-generate.html',context=context)
 
 def testing_page(request, method, amount, currency):
     refresh_token = request.session.get('refresh_token')
@@ -745,6 +747,8 @@ def transaction_history(request):
                         return render(request, 'app/transaction-history.html', {'history': formatted_history})
                     else:
                         return render(request, 'app/transaction-history.html', {'error': 'Invalid API response format.'})
+                elif response.status_code == 404:
+                    return render(request, 'app/transaction-history.html')
                 else:
                     return redirect('/')
             except Exception as e:
@@ -1511,6 +1515,9 @@ class AssignBranchesViewSet(viewsets.ModelViewSet):
     def put(self, request, *args, **kwargs):
         staff_name = request.query_params.get('staff_name', None)
         staff_id = request.query_params.get('staff_id', None)
+        branch_ids = request.data.get('branch_ids', [])
+
+        print("This is branch:",branch_ids)
 
         if not staff_id and not staff_name:  
             return Response({
@@ -1528,10 +1535,25 @@ class AssignBranchesViewSet(viewsets.ModelViewSet):
                 "message": "Staff not found"
             }, status=status.HTTP_404_NOT_FOUND)
 
-        for attr, value in request.data.items():
-            setattr(staff, attr, value)
+        if branch_ids:
+        # Convert branch_ids to a list if it's a comma-separated string
+            branch_ids = [int(branch_id) for branch_id in branch_ids.split(',')]
+            branches = Branch.objects.filter(id__in=branch_ids)  # Use the correct field for filtering (e.g., `id`)
 
-        staff.save()
+            staff.branches.set(branches) 
+            staff.save()
+
+            return Response({
+                "success": True,
+                "code": 200,
+                "message": "Staff and branches updated successfully",
+                "data": {
+                    "staff_id": staff.staff_id,
+                    "staff_name": staff.staff_name,
+                    "branches": [branch.br_kh_name for branch in branches]
+                }
+            }, status=status.HTTP_200_OK)
+
 
         if 'staff_status' in request.data:
             try:

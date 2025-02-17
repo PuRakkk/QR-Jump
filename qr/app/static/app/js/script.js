@@ -228,7 +228,7 @@ function redirectToQRPage(method, amount, currency) {
     if (withoutspaceAmount && currency) {
         const form = document.createElement("form");
         form.method = "POST";
-        form.action = `/qr-generate/${method}/${withoutspaceAmount}/${currency}/`; 
+        form.action = `/aba-qr-generate/${method}/${withoutspaceAmount}/${currency}/`; 
 
         const csrfTokenInput = document.createElement("input");
         csrfTokenInput.type = "hidden";
@@ -278,9 +278,9 @@ function redirectToHistory() {
 
 function goBackToTransactionPageFromHistoryPage(currency) {
 
-    if (currency === 'USD') {
+    if (currency === 'USD' || currency === 'usd') {
         window.location.href = '/usd-transaction';
-    } else if (currency === 'KHR') {
+    } else if (currency === 'KHR' || currency === 'khr') {
         window.location.href = '/khr-transaction';
     }
 }
