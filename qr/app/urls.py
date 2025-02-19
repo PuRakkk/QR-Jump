@@ -1,7 +1,7 @@
 from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
-from .views import CompanyViewSet, BranchViewSet, StaffViewSet, TransactionHistoryViewSet, AssignBranchesViewSet
+from .views import CompanyViewSet, BranchViewSet, StaffViewSet, TransactionHistoryViewSet, AssignBranchesViewSet, StaticPaymentViewSet
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from .views import fetch_all_users
@@ -19,6 +19,7 @@ router.register(r'branches', BranchViewSet)
 router.register(r'staff', StaffViewSet, basename='staff')
 router.register(r'transactions', TransactionHistoryViewSet)
 router.register(r'assign-branches', AssignBranchesViewSet, basename='assign-branches')
+router.register(r'static-payment',StaticPaymentViewSet ,basename='static-payment')
 
 schema_view = get_schema_view(
     openapi.Info(

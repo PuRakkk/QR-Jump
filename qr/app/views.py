@@ -8,8 +8,8 @@ from io import BytesIO
 from django.views.decorators.csrf import csrf_protect
 import logging
 from rest_framework import viewsets
-from .models import Company, Branch, Staff, TransactionHistory
-from .serializers import CompanySerializer, BranchSerializer, StaffSerializer, TransactionHistorySerializer
+from .models import Company, Branch, Staff, TransactionHistory, StaticPayment
+from .serializers import CompanySerializer, BranchSerializer, StaffSerializer, TransactionHistorySerializer, StaticPaymentSerializer
 from django_filters import rest_framework as filters
 from rest_framework import status, viewsets
 from rest_framework.response import Response
@@ -141,20 +141,30 @@ def select_branchs(request):
                 if branches:
                     branch_id = branches[0]['id']
                     bank_credentials = {}
+                    payment_types = {}
                     
-                    for bank in branches[0]['bank_credentials']:
-                        bank_name = bank['bank_name'].lower()
-                        bank_credentials[bank_name] = {
-                            'api_key': bank['api_key'],
-                            'public_key': bank['public_key'],
-                            'merchant_id': bank['merchant_id']
-                        }
-                        
+                    for item in branches[0]['bank_credentials'] + branches[0]['payment_types']:
+                        if isinstance(item, dict):
+                            if 'bank_name' in item:
+                                bank_name = item['bank_name'].lower()
+                                bank_credentials[bank_name] = {
+                                    'api_key': item['api_key'],
+                                    'public_key': item['public_key'],
+                                    'merchant_id': item['merchant_id']
+                                }
+                        elif isinstance(item, str):
+                            payment_name = item.lower()
+                            payment_types[payment_name] = payment_name
+
+                    print("Bank Credentials:", bank_credentials)
+                    print("Payment Types:", payment_types)
+                                            
                 if len(branches) == 1:
                     request.session['staff_id'] = staff_id
                     request.session['com_id'] = com_id
                     request.session['branch_id'] = branch_id
                     request.session['bank_credentials'] = bank_credentials
+                    request.session['payment_types'] = payment_types
                     return render(request, 'app/usd-transaction.html')
                 
                 elif len(branches) > 1:
@@ -163,7 +173,8 @@ def select_branchs(request):
                         'staff_id': staff_id,
                         'com_id': com_id,
                         'telegram_username': telegram_username,
-                        'bank_credentials': bank_credentials
+                        'bank_credentials': bank_credentials,
+                        'payment_types': payment_types
                     })
                 
                 else:
@@ -328,6 +339,7 @@ def usd_transaction_page(request):
 def confirm_transaction(request):
     refresh_token = request.session.get('refresh_token')
     bank_credentials = request.session.get('bank_credentials')
+    payment_types = request.session.get('payment_types')
     if not refresh_token:
         return redirect('/')
 
@@ -357,7 +369,8 @@ def confirm_transaction(request):
         'currency': currency,
         'amount': amount,
         'server_time': server_time,
-        'bank_credentials': bank_credentials
+        'bank_credentials': bank_credentials,
+        'payment_types':payment_types
     })
     
 def check_token_status(request):
@@ -1753,3 +1766,100 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
                 "message": "An error occurred while fetching transaction history",
                 "error": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class StaticPaymentFilter(filters.FilterSet):
+    payment_type = filters.CharFilter(field_name='payment_type', lookup_expr='exact')
+    br_id = filters.NumberFilter(field_name='br_id', lookup_expr='exact')
+    sp_created_at = filters.DateTimeFilter(field_name='sp_created_at', lookup_expr='exact')
+
+    class Meta:
+        model = StaticPayment
+        fields = ['payment_type','br_id','sp_created_at']
+
+
+class StaticPaymentViewSet(viewsets.ModelViewSet):
+    queryset = StaticPayment.objects.all()
+    serializer_class = StaticPaymentSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = StaticPaymentFilter
+
+    def create(self, request, *args, **kwargs):
+        payment_type = request.data.get('payment_type')
+        branch_ids = request.data.get('branch_ids', []) 
+        if not payment_type:
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "The payment_type field is required",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        branches = Branch.objects.filter(id__in=branch_ids)
+        if not branches.exists():
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "The branch not found",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        static_payment = StaticPayment.objects.create(payment_type=payment_type)
+        static_payment.branch.set(branches)
+        serializer = StaticPaymentSerializer(static_payment)
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfull created Static Payment",
+            "data":[serializer.data]
+        })
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfully retrieved Static Payments",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        payment_type = request.data.get('payment_type', instance.payment_type)
+        branch_ids = request.data.get('branch_ids', [])
+
+        branches = Branch.objects.filter(id__in=branch_ids)
+        if not branches.exists() and branch_ids:
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "The branch not found",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        instance.payment_type = payment_type
+        instance.save()
+        if branch_ids:
+            instance.branch.set(branches)
+
+        serializer = StaticPaymentSerializer(instance)
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfully updated Static Payment",
+            "data": [serializer.data]
+        }, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfully deleted Static Payment",
+            "data": []
+        }, status=status.HTTP_200_OK)
+        
+
+    

@@ -83,11 +83,7 @@ class BankCredentials(models.Model):
         ('bakong', 'Bakong Bank'),
     ]
 
-    branch = models.ForeignKey(
-        Branch,
-        on_delete=models.CASCADE,
-        related_name='bank_credentials'
-    )
+    branch = models.ManyToManyField(Branch, related_name='bank_credentials')
     bank_name = models.CharField(max_length=50, choices=BANK_CHOICES)
     api_key = EncryptedTextField(models.CharField(max_length=255))
     public_key = EncryptedTextField(models.CharField(max_length=255))
@@ -97,11 +93,12 @@ class BankCredentials(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        
         db_table = 'qrjump_bank_credentials_storage'
-        unique_together = [('branch', 'bank_name')] 
 
     def __str__(self):
-        return f"{self.branch.br_en_name} - {self.get_bank_name_display()}"
+        branch_names = ", ".join([branch.br_en_name for branch in self.branch.all()])
+        return f"{branch_names} - {self.get_bank_name_display()}"
     
 class SuperAdmin(models.Model):
     superadmin_id = models.AutoField(primary_key=True)
@@ -115,3 +112,12 @@ class SuperAdmin(models.Model):
     
     def __str__(self):
         return self.superadmin_name
+
+class StaticPayment(models.Model):
+    payment_type = models.CharField(max_length=150)
+    branch = models.ManyToManyField(Branch, related_name='statispayment')
+    sp_created_at = models.DateTimeField(auto_now_add=True) 
+    class Meta:
+        db_table = 'qrjump_static_payments_storage'
+    def __str__(self):
+        return f"{self.payment_type} - {self.branch} - {self.sp_created_at}"
