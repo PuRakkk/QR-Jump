@@ -116,8 +116,6 @@ def check_login(request):
 
     return render(request, 'app/index.html', {'error_message': error_message})
 
-
-
 def select_branchs(request):
     telegram_username = request.GET.get('telegram_username')
     refresh_token = request.session.get('refresh_token')
@@ -136,9 +134,9 @@ def select_branchs(request):
             if 'data' in data and data['data']:
                 branches = data['data'][0].get('branches', [])
                 staff_id = data['data'][0]['staff_id']
-                com_id = data['data'][0]['com_id']
 
                 if branches:
+                    com_id = branches[0].get('com_id', None)
                     branch_id = branches[0]['id']
                     bank_credentials = {}
                     payment_types = {}
@@ -155,9 +153,6 @@ def select_branchs(request):
                         elif isinstance(item, str):
                             payment_name = item.lower()
                             payment_types[payment_name] = payment_name
-
-                    print("Bank Credentials:", bank_credentials)
-                    print("Payment Types:", payment_types)
                                             
                 if len(branches) == 1:
                     request.session['staff_id'] = staff_id
@@ -189,21 +184,46 @@ def select_branchs(request):
     
 def storing_credentials(request):
     refresh_token = request.session.get('refresh_token')
+    access_token = request.session.get('access_token')
     staff_id = request.GET.get('staff_id')
     com_id = request.GET.get('com_id')
     telegram_username = request.GET.get('telegram_username')
     branch_id = request.GET.get('branch_id')
+    payment_type = request.GET.get('payment_types')
+    print("This is Payment Type:",payment_type)
+
+    bank_credentials = {}
+    payment_types = {}
     try:
-        branch = Branch.objects.get(id=branch_id)
-        
-        bank_credentials = {}
-        for bank in branch.bank_credentials.all():
-            bank_name = bank.bank_name.lower()
-            bank_credentials[bank_name] = {
-                'api_key': bank.api_key,
-                'public_key': bank.public_key,
-                'merchant_id': bank.merchant_id
-            }
+        api = f"http://127.0.0.1:8000/api/v1/staff/?branches={branch_id}"
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(api, headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+            if 'data' in data and data['data']:
+                branches = data['data'][0].get('branches', [])
+                staff_id = data['data'][0]['staff_id']
+
+                if branches:
+                    com_id = branches[0].get('com_id', None)
+                    branch_id = branches[0]['id']
+                    # bank_credentials_list = branches[0].get('bank_credentials', [])
+                    # payment_types_list = branches[0].get('payment_types', [])
+                    
+                    for item in branches[0]['bank_credentials'] + branches[0]['payment_types']:
+                        if isinstance(item, dict):
+                            if 'bank_name' in item:
+                                bank_name = item['bank_name'].lower()
+                                bank_credentials[bank_name] = {
+                                    'api_key': item['api_key'],
+                                    'public_key': item['public_key'],
+                                    'merchant_id': item['merchant_id']
+                                }
+                        elif isinstance(item, str):
+                            payment_name = item.lower()
+                            payment_types[payment_name] = payment_name
+
     except Branch.DoesNotExist:
         return redirect('/')
 
@@ -233,6 +253,7 @@ def storing_credentials(request):
         request.session['telegram_username'] = telegram_username
         request.session['branch_id'] = branch_id
         request.session['bank_credentials'] = bank_credentials
+        request.session['payment_types'] = payment_types
 
     return render(request, 'app/usd-transaction.html')
 

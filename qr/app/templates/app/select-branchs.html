@@ -29,11 +29,11 @@
             <ul class="branch-list">
                 {% for branch in branches %}
                     <li class="branch-item">
-                        <a href="{% url 'storing_credentials' %}?staff_id={{ staff_id }}&com_id={{ com_id }}&branch_id={{ branch.id }}&telegram_username={{ telegram_username }}&bank_credentials={{ bank_credentials|join:',' }}"class="branch-link">
+                        <a href="{% url 'storing_credentials' %}?staff_id={{ staff_id }}&com_id={{ com_id }}&branch_id={{ branch.id }}&telegram_username={{ telegram_username }}&bank_credentials={{ bank_credentials|join:',' }}&payment_types={{ payment_types }}"class="branch-link">
                             <small class="small-label">Name: {{ branch.br_en_name }}</small><br>
                             <small class="small-label">Email: {{ branch.br_email }}</small><br>
                             <small class="small-label">Contact: {{ branch.br_contact }}</small><br>
-                            <small class="small-label">Status: {% if branch.br_status %}Active{% else %}Inactive{% endif %}</small>
+                            <small class="small-label">Status: {% if branch.br_status %}Active{% else %}Inactive{% endif %}</small><br>
                         </a>
                     </li>
                 {% endfor %}
