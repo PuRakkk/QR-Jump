@@ -36,6 +36,12 @@
                         <img src="{% static 'app/images/'|add:bank_name|lower|add:'-logo.png' %}" alt="{{ bank_name }} Logo" style="width: 80px; height: 80px; border-radius: 5px;">
                     </button>
                 {% endfor %}
+
+                {% for payment_name, payment in payment_types.items %}
+                    <button type="button" class="payment-btn" onclick="refreshAccessToken(); redirectToQRPage('{{ payment_name }}', '{{ amount }}', '{{ currency }}');">
+                        <span style="width: 80px; height: 80px; border-radius: 5px;">{{ payment_name|title }}</span>
+                    </button>
+                {% endfor %}
             </div>
     
             <div class="cancel-btn-class">

@@ -8,8 +8,8 @@ from io import BytesIO
 from django.views.decorators.csrf import csrf_protect
 import logging
 from rest_framework import viewsets
-from .models import Company, Branch, Staff, TransactionHistory
-from .serializers import CompanySerializer, BranchSerializer, StaffSerializer, TransactionHistorySerializer
+from .models import Company, Branch, Staff, TransactionHistory, StaticPayment, BotUsersStorage
+from .serializers import CompanySerializer, BranchSerializer, StaffSerializer, TransactionHistorySerializer, StaticPaymentSerializer, BotUsersStorageSerializer
 from django_filters import rest_framework as filters
 from rest_framework import status, viewsets
 from rest_framework.response import Response
@@ -116,8 +116,6 @@ def check_login(request):
 
     return render(request, 'app/index.html', {'error_message': error_message})
 
-
-
 def select_branchs(request):
     telegram_username = request.GET.get('telegram_username')
     refresh_token = request.session.get('refresh_token')
@@ -136,25 +134,32 @@ def select_branchs(request):
             if 'data' in data and data['data']:
                 branches = data['data'][0].get('branches', [])
                 staff_id = data['data'][0]['staff_id']
-                com_id = data['data'][0]['com_id']
 
                 if branches:
+                    com_id = branches[0].get('com_id', None)
                     branch_id = branches[0]['id']
                     bank_credentials = {}
+                    payment_types = {}
                     
-                    for bank in branches[0]['bank_credentials']:
-                        bank_name = bank['bank_name'].lower()
-                        bank_credentials[bank_name] = {
-                            'api_key': bank['api_key'],
-                            'public_key': bank['public_key'],
-                            'merchant_id': bank['merchant_id']
-                        }
-                        
+                    for item in branches[0]['bank_credentials'] + branches[0]['payment_types']:
+                        if isinstance(item, dict):
+                            if 'bank_name' in item:
+                                bank_name = item['bank_name'].lower()
+                                bank_credentials[bank_name] = {
+                                    'api_key': item['api_key'],
+                                    'public_key': item['public_key'],
+                                    'merchant_id': item['merchant_id']
+                                }
+                        elif isinstance(item, str):
+                            payment_name = item.lower()
+                            payment_types[payment_name] = payment_name
+                                            
                 if len(branches) == 1:
                     request.session['staff_id'] = staff_id
                     request.session['com_id'] = com_id
                     request.session['branch_id'] = branch_id
                     request.session['bank_credentials'] = bank_credentials
+                    request.session['payment_types'] = payment_types
                     return render(request, 'app/usd-transaction.html')
                 
                 elif len(branches) > 1:
@@ -163,7 +168,8 @@ def select_branchs(request):
                         'staff_id': staff_id,
                         'com_id': com_id,
                         'telegram_username': telegram_username,
-                        'bank_credentials': bank_credentials
+                        'bank_credentials': bank_credentials,
+                        'payment_types': payment_types
                     })
                 
                 else:
@@ -178,21 +184,46 @@ def select_branchs(request):
     
 def storing_credentials(request):
     refresh_token = request.session.get('refresh_token')
+    access_token = request.session.get('access_token')
     staff_id = request.GET.get('staff_id')
     com_id = request.GET.get('com_id')
     telegram_username = request.GET.get('telegram_username')
     branch_id = request.GET.get('branch_id')
+    payment_type = request.GET.get('payment_types')
+    print("This is Payment Type:",payment_type)
+
+    bank_credentials = {}
+    payment_types = {}
     try:
-        branch = Branch.objects.get(id=branch_id)
-        
-        bank_credentials = {}
-        for bank in branch.bank_credentials.all():
-            bank_name = bank.bank_name.lower()
-            bank_credentials[bank_name] = {
-                'api_key': bank.api_key,
-                'public_key': bank.public_key,
-                'merchant_id': bank.merchant_id
-            }
+        api = f"http://127.0.0.1:8000/api/v1/staff/?branches={branch_id}"
+        headers = {'Authorization': f'Bearer {access_token}'}
+        response = requests.get(api, headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+            if 'data' in data and data['data']:
+                branches = data['data'][0].get('branches', [])
+                staff_id = data['data'][0]['staff_id']
+
+                if branches:
+                    com_id = branches[0].get('com_id', None)
+                    branch_id = branches[0]['id']
+                    # bank_credentials_list = branches[0].get('bank_credentials', [])
+                    # payment_types_list = branches[0].get('payment_types', [])
+                    
+                    for item in branches[0]['bank_credentials'] + branches[0]['payment_types']:
+                        if isinstance(item, dict):
+                            if 'bank_name' in item:
+                                bank_name = item['bank_name'].lower()
+                                bank_credentials[bank_name] = {
+                                    'api_key': item['api_key'],
+                                    'public_key': item['public_key'],
+                                    'merchant_id': item['merchant_id']
+                                }
+                        elif isinstance(item, str):
+                            payment_name = item.lower()
+                            payment_types[payment_name] = payment_name
+
     except Branch.DoesNotExist:
         return redirect('/')
 
@@ -222,6 +253,7 @@ def storing_credentials(request):
         request.session['telegram_username'] = telegram_username
         request.session['branch_id'] = branch_id
         request.session['bank_credentials'] = bank_credentials
+        request.session['payment_types'] = payment_types
 
     return render(request, 'app/usd-transaction.html')
 
@@ -328,6 +360,7 @@ def usd_transaction_page(request):
 def confirm_transaction(request):
     refresh_token = request.session.get('refresh_token')
     bank_credentials = request.session.get('bank_credentials')
+    payment_types = request.session.get('payment_types')
     if not refresh_token:
         return redirect('/')
 
@@ -357,7 +390,8 @@ def confirm_transaction(request):
         'currency': currency,
         'amount': amount,
         'server_time': server_time,
-        'bank_credentials': bank_credentials
+        'bank_credentials': bank_credentials,
+        'payment_types':payment_types
     })
     
 def check_token_status(request):
@@ -1751,5 +1785,219 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
                 "success": False,
                 "code": 500,
                 "message": "An error occurred while fetching transaction history",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class StaticPaymentFilter(filters.FilterSet):
+    payment_type = filters.CharFilter(field_name='payment_type', lookup_expr='exact')
+    br_id = filters.NumberFilter(field_name='br_id', lookup_expr='exact')
+    sp_created_at = filters.DateTimeFilter(field_name='sp_created_at', lookup_expr='exact')
+
+    class Meta:
+        model = StaticPayment
+        fields = ['payment_type','br_id','sp_created_at']
+
+
+class StaticPaymentViewSet(viewsets.ModelViewSet):
+    queryset = StaticPayment.objects.all()
+    serializer_class = StaticPaymentSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = StaticPaymentFilter
+
+    def create(self, request, *args, **kwargs):
+        payment_type = request.data.get('payment_type')
+        branch_ids = request.data.get('branch_ids', []) 
+        if not payment_type:
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "The payment_type field is required",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        branches = Branch.objects.filter(id__in=branch_ids)
+        if not branches.exists():
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "The branch not found",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        static_payment = StaticPayment.objects.create(payment_type=payment_type)
+        static_payment.branch.set(branches)
+        serializer = StaticPaymentSerializer(static_payment)
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfull created Static Payment",
+            "data":[serializer.data]
+        })
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfully retrieved Static Payments",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        payment_type = request.data.get('payment_type', instance.payment_type)
+        branch_ids = request.data.get('branch_ids', [])
+
+        branches = Branch.objects.filter(id__in=branch_ids)
+        if not branches.exists() and branch_ids:
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "The branch not found",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        instance.payment_type = payment_type
+        instance.save()
+        if branch_ids:
+            instance.branch.set(branches)
+
+        serializer = StaticPaymentSerializer(instance)
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfully updated Static Payment",
+            "data": [serializer.data]
+        }, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfully deleted Static Payment",
+            "data": []
+        }, status=status.HTTP_200_OK)
+    
+
+class BotUsersStorageFilter(filters.FilterSet):
+    telegram_id = filters.NumberFilter(field_name='telegram_id', lookup_expr='exact')
+    first_name = filters.CharFilter(field_name='first_name', lookup_expr='exact')
+    last_name = filters.CharFilter(field_name='last_name', lookup_expr='exact')
+    full_name = filters.CharFilter(field_name='full_name', lookup_expr='exact')
+    username = filters.CharFilter(field_name='username', lookup_expr='exact')
+    telegram_language = filters.CharFilter(field_name='telegram_language', lookup_expr='exact')
+    user_choose_language = filters.CharFilter(field_name='user_choose_language', lookup_expr='exact')
+    user_status = filters.CharFilter(field_name='user_status', lookup_expr='exact')
+    created_at = filters.DateTimeFilter(field_name='created_at', lookup_expr='exact')
+    visiter = filters.CharFilter(field_name='visiter', lookup_expr='exact')
+    phone_number = filters.NumberFilter(field_name='phone_number', lookup_expr='exact')
+
+    class Meta:
+        model = BotUsersStorage
+        fields = ['telegram_id','first_name','last_name','full_name','username','telegram_language','user_choose_language','user_status','created_at','visiter','phone_number']
+
+
+class BotUsersStorageViewSet(viewsets.ModelViewSet):
+    queryset = BotUsersStorage.objects.all()
+    serializer_class = BotUsersStorageSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = BotUsersStorageFilter
+
+    def get_permissions(self):
+        self.permission_classes = [IsAdminUser]
+        return super().get_permissions()
+    
+    def create(self, request, *args, **kwargs):
+        required_fields = ["telegram_id", "first_name", "username", "user_status"]
+        missing_fields = [field for field in required_fields if not request.data.get(field)]
+
+        if missing_fields:
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": f"The following fields are required: {', '.join(missing_fields)}",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+        telegram_id = request.data.get("telegram_id")
+        first_name = request.data.get("first_name")
+        last_name = request.data.get("last_name", "")
+        full_name = request.data.get("full_name", f"{first_name} {last_name}".strip())
+        username = request.data.get("username")
+        telegram_language = request.data.get("telegram_language", "en")
+        user_choose_language = request.data.get("user_choose_language", telegram_language)
+        user_status = request.data.get("user_status")
+        visiter = request.data.get("visiter", None)
+        phone_number = request.data.get("phone_number", None)
+        user_pin = request.data.get("user_pin", None)
+
+        # Check if user already exists
+        if BotUsersStorage.objects.filter(telegram_id=telegram_id).exists():
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "A user with this Telegram ID already exists",
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create new user
+        user = BotUsersStorage.objects.create(
+            telegram_id=telegram_id,
+            first_name=first_name,
+            last_name=last_name,
+            full_name=full_name,
+            username=username,
+            telegram_language=telegram_language,
+            user_choose_language=user_choose_language,
+            user_status=user_status,
+            visiter=visiter,
+            phone_number=phone_number,
+        )
+
+        serializer = self.get_serializer(user)
+        return Response({
+            "success": True,
+            "code": 201,
+            "message": "User created successfully",
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
+        
+    def list(self, request, *args, **kwargs):
+        
+        try:
+
+            for param, value in request.query_params.items():
+                if not value.strip():
+                    return Response({
+                        "success": False,
+                        "code": 400,
+                        "message": f"Invalid parameter"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            queryset = self.filter_queryset(self.get_queryset())
+
+            if request.query_params and not queryset.exists():
+                return Response({
+                    "success": False,
+                    "code": 404,
+                    "message": "User not found",
+                    "data": []
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            serializer = self.get_serializer(queryset, many=True)
+            return Response({
+                "success": True,
+                "code": 200,
+                "message": "User fetched successfully",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                "success": False,
+                "code": 500,
+                "message": "An error occurred while fetching users data",
                 "error": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

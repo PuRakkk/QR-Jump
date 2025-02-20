@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import SuperAdmin
-from .models import Company, Branch, Staff, TransactionHistory, BankCredentials
+from .models import Company, Branch, Staff, TransactionHistory, BankCredentials, StaticPayment
 from django import forms
 
 class BankCredentialsForm(forms.ModelForm):
@@ -17,7 +17,8 @@ class BankCredentialsForm(forms.ModelForm):
 @admin.register(BankCredentials)
 class BankCredentialsAdmin(admin.ModelAdmin):
     form = BankCredentialsForm
-    list_display = ('branch', 'bank_name', 'is_active', 'truncated_api_key', 'truncated_public_key', 'truncated_merchant_id')
+    list_display = ('bank_name', 'is_active', 'truncated_api_key', 'truncated_public_key', 'truncated_merchant_id')
+    filter_horizontal = ('branch',)
 
     def truncated_api_key(self, obj):
         return str(obj.api_key)[:20] + '...' if obj.api_key else ''
@@ -35,6 +36,7 @@ admin.site.register(Company)
 admin.site.register(Branch)
 admin.site.register(Staff)
 admin.site.register(TransactionHistory)
+admin.site.register(StaticPayment)
 
 class SuperAdminAdmin(admin.ModelAdmin):
     fieldsets = (

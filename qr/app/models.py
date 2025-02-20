@@ -83,11 +83,7 @@ class BankCredentials(models.Model):
         ('bakong', 'Bakong Bank'),
     ]
 
-    branch = models.ForeignKey(
-        Branch,
-        on_delete=models.CASCADE,
-        related_name='bank_credentials'
-    )
+    branch = models.ManyToManyField(Branch, related_name='bank_credentials')
     bank_name = models.CharField(max_length=50, choices=BANK_CHOICES)
     api_key = EncryptedTextField(models.CharField(max_length=255))
     public_key = EncryptedTextField(models.CharField(max_length=255))
@@ -97,11 +93,12 @@ class BankCredentials(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        
         db_table = 'qrjump_bank_credentials_storage'
-        unique_together = [('branch', 'bank_name')] 
 
     def __str__(self):
-        return f"{self.branch.br_en_name} - {self.get_bank_name_display()}"
+        branch_names = ", ".join([branch.br_en_name for branch in self.branch.all()])
+        return f"{branch_names} - {self.get_bank_name_display()}"
     
 class SuperAdmin(models.Model):
     superadmin_id = models.AutoField(primary_key=True)
@@ -115,3 +112,31 @@ class SuperAdmin(models.Model):
     
     def __str__(self):
         return self.superadmin_name
+
+class StaticPayment(models.Model):
+    payment_type = models.CharField(max_length=150)
+    branch = models.ManyToManyField(Branch, related_name='statispayment')
+    sp_created_at = models.DateTimeField(auto_now_add=True) 
+    class Meta:
+        db_table = 'qrjump_static_payments_storage'
+    def __str__(self):
+        return f"{self.payment_type} - {self.branch} - {self.sp_created_at}"
+
+class BotUsersStorage(models.Model):
+    telegram_id = models.BigIntegerField(unique=True, null=False)
+    first_name = models.CharField(max_length=100, null=True, blank=True)
+    last_name = models.CharField(max_length=100, null=True, blank=True)
+    full_name = models.CharField(max_length=100, null=True, blank=True)
+    username = models.CharField(unique=True, null=False, max_length=100)
+    telegram_language = models.CharField(max_length=10, null=False)
+    user_choose_language = models.CharField(max_length=20, null=True, blank=True)
+    user_status = models.CharField(max_length=50, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    visiter = models.CharField(max_length=20, null=True)
+    phone_number = models.CharField(max_length=15, null=True, blank=True)
+
+    class Meta:
+        db_table = 'qrjump_users_storage'
+    
+    def __str__(self):
+        return f"{self.telegram_id} - {self.first_name} - {self.last_name} - {self.full_name} - {self.username} - {self.telegram_language} - {self.user_choose_language} - {self.user_status} - {self.created_at} - {self.visiter} - {self.phone_number} - {self.user_pin}"

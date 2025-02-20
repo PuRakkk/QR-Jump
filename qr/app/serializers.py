@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Company, Branch, Staff, TransactionHistory, BankCredentials
+from .models import Company, Branch, Staff, TransactionHistory, BankCredentials, StaticPayment, BotUsersStorage
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -12,15 +12,23 @@ class BankCredentialsSerializer(serializers.ModelSerializer):
         model = BankCredentials
         fields = ['bank_name', 'api_key', 'public_key', 'merchant_id', 'is_active', 'created_at', 'updated_at']
 
+class StaticPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StaticPayment
+        fields = ['payment_type']
+
 class BranchSerializer(serializers.ModelSerializer):
     bank_credentials = BankCredentialsSerializer(many=True, read_only=True)
+    payment_types = serializers.SerializerMethodField()
     class Meta:
         model = Branch
         fields = [
             'id', 'com_id', 'br_kh_name', 'br_en_name', 'br_email', 
             'br_password', 'br_contact', 'br_status', 'br_created_at',
-            'bank_credentials'
+            'bank_credentials','payment_types'
         ]
+    def get_payment_types(self, obj):
+        return [static_payment.payment_type for static_payment in obj.statispayment.all()]
 
 class StaffSerializer(serializers.ModelSerializer):
     branches = BranchSerializer(many=True, required=False)
@@ -50,3 +58,7 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class BotUsersStorageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BotUsersStorage
+        fields = '__all__'
