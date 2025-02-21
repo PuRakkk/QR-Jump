@@ -1379,17 +1379,15 @@ class StaffViewSet(viewsets.ModelViewSet):
                     "message": f"Error while updating pin: {str(e)}"
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        if 'staff_position' in request.data:  # Update permissions if staff role changes
+        if 'staff_position' in request.data:  
             new_role = request.data['staff_position']
 
             try:
                 user = User.objects.filter(username=staff.staff_telegram_username).first()
 
                 if user:
-                    # Clear existing permissions
                     user.user_permissions.clear()
 
-                    # Assign new permissions based on the role
                     if new_role == "staff":
                         per = [
                             Permission.objects.get(codename='view_transactionhistory'),
@@ -1426,7 +1424,6 @@ class StaffViewSet(viewsets.ModelViewSet):
                             "message": "Invalid staff role provided"
                         }, status=status.HTTP_400_BAD_REQUEST)
 
-                    # Add the new permissions
                     user.user_permissions.add(*per)
                     user.save()
 
