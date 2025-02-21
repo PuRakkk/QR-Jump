@@ -181,7 +181,11 @@ def select_branchs(request):
 
     except requests.exceptions.RequestException as e:
         return HttpResponse(f"Error fetching staff information: {str(e)}", status=500)
+
+def defualt_login(request):
     
+    return render(request, 'app/defualt-login.html')
+
 def storing_credentials(request):
     refresh_token = request.session.get('refresh_token')
     access_token = request.session.get('access_token')
@@ -532,84 +536,6 @@ def aba_qr_generate(request, method, amount, currency):
     }
     print("This is context:",context)
     return render (request, 'app/aba-qr-generate.html',context=context)
-
-def testing_page(request, method, amount, currency):
-    refresh_token = request.session.get('refresh_token')
-    if not refresh_token:
-        return redirect('/')
-
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
-    data = {'refresh': refresh_token}
-
-    try:
-        response = requests.post(api, data=data)
-        if response.status_code == 200:
-            new_access_token = response.json().get('access')
-            new_refresh_token = response.json().get('refresh')
-
-            request.session['access_token'] = new_access_token
-            request.session['refresh_token'] = new_refresh_token
-            request.session.save()
-        else:
-            return redirect('/')
-    except Exception as e:
-        print(f"Error refreshing token: {str(e)}")
-        return redirect('/')
-    
-    success_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_success/"
-    utc_now = datetime.now(pytz.utc)
-    formatted_time = utc_now.strftime('%Y%m%d%H%M%S')
-    bank_credentials = request.session.get('bank_credentials')
-    for bank_name, creds in bank_credentials.items():
-        if bank_name == 'aba':
-            merchant_id = creds['merchant_id']
-            api_key = creds['api_key']
-            public_key = creds['public_key']
-    
-    API_KEY = api_key
-    MERCHANT_ID = merchant_id
-    PUBLIC_KEY = public_key
-    REQ_TIME = formatted_time
-    TRAN_ID = formatted_time
-    AMOUNT = amount
-    print("Amount",AMOUNT)
-    CURRENCY = currency
-    CONTINUE_SUCCESS_URL = success_url
-    PAYMENT_OPTION = 'abapay'
-    STR_DATA = f'{REQ_TIME}{MERCHANT_ID}{TRAN_ID}{AMOUNT}{PAYMENT_OPTION}{CONTINUE_SUCCESS_URL}{CURRENCY}'
-    HASH = base64.b64encode(hmac.new(PUBLIC_KEY.encode(), STR_DATA.encode(), hashlib.sha512).digest()).decode()
-
-    if request.method == 'POST':
-        api_url = API_KEY
-
-        payload = {
-            'req_time': REQ_TIME,
-            'merchant_id': MERCHANT_ID,
-            'tran_id': TRAN_ID,
-            'amount': AMOUNT,
-            'payment_option': PAYMENT_OPTION,
-            'currency': CURRENCY,
-            'continue_success_url': CONTINUE_SUCCESS_URL,
-            'hash':HASH
-        }
-        headers = {
-            'Content-Type': 'multiple/form-data'
-        }
-    try:
-        response = requests.post(api_url, data=payload, headers=headers)  
-
-        print("Response Status Code:", response.status_code)
-        print("Response Content:", response.text)
-
-        response_data = response.json()
-        print("Response Data:", response_data)
-    except ValueError:
-        print("Invalid JSON response. Content returned:", response.text)
-
-    except requests.exceptions.RequestException as e:
-        print(f"Request error: {e}")
-
-    return render(request, 'app/testing.html')
 
 def qr_generate(request, method, amount, currency):
     refresh_token = request.session.get('refresh_token')
