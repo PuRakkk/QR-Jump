@@ -1929,9 +1929,7 @@ class BotUsersStorageViewSet(viewsets.ModelViewSet):
         user_status = request.data.get("user_status")
         visiter = request.data.get("visiter", None)
         phone_number = request.data.get("phone_number", None)
-        user_pin = request.data.get("user_pin", None)
 
-        # Check if user already exists
         if BotUsersStorage.objects.filter(telegram_id=telegram_id).exists():
             return Response({
                 "success": False,
@@ -1940,7 +1938,6 @@ class BotUsersStorageViewSet(viewsets.ModelViewSet):
                 "data": []
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create new user
         user = BotUsersStorage.objects.create(
             telegram_id=telegram_id,
             first_name=first_name,
@@ -1996,5 +1993,93 @@ class BotUsersStorageViewSet(viewsets.ModelViewSet):
                 "success": False,
                 "code": 500,
                 "message": "An error occurred while fetching users data",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request, *args, **kwargs):
+        try:
+            username = request.query_params.get("username")
+            first_name = request.query_params.get("first_name")
+            telegram_id = request.query_params.get("telegram_id")
+
+            if not any([username, first_name, telegram_id]):
+                return Response({
+                    "success": False,
+                    "code": 400,
+                    "message": "At least one of username, first_name, or telegram_id is required as a query parameter",
+                    "data": []
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            user = self.get_queryset().filter(
+                Q(username=username) | Q(first_name=first_name) | Q(telegram_id=telegram_id)
+            ).first()
+
+            if not user:
+                return Response({
+                    "success": False,
+                    "code": 404,
+                    "message": "User not found",
+                    "data": []
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            for field in request.data:
+                setattr(user, field, request.data[field])
+
+            user.save()
+            serializer = self.get_serializer(user)
+            return Response({
+                "success": True,
+                "code": 200,
+                "message": "User updated successfully",
+                "data": serializer.data
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "success": False,
+                "code": 500,
+                "message": "An error occurred while updating user data",
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            username = request.query_params.get("username")
+            first_name = request.query_params.get("first_name")
+            telegram_id = request.query_params.get("telegram_id")
+
+            if not any([username, first_name, telegram_id]):
+                return Response({
+                    "success": False,
+                    "code": 400,
+                    "message": "At least one of username, first_name, or telegram_id is required as a query parameter",
+                    "data": []
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            user = self.get_queryset().filter(
+                Q(username=username) | Q(first_name=first_name) | Q(telegram_id=telegram_id)
+            ).first()
+
+            if not user:
+                return Response({
+                    "success": False,
+                    "code": 404,
+                    "message": "User not found",
+                    "data": []
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            user.delete()
+            return Response({
+                "success": True,
+                "code": 200,
+                "message": "User deleted successfully",
+                "data": []
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "success": False,
+                "code": 500,
+                "message": "An error occurred while deleting the user",
                 "error": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
