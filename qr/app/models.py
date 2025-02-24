@@ -115,7 +115,7 @@ class SuperAdmin(models.Model):
 
 class StaticPayment(models.Model):
     payment_type = models.CharField(max_length=150)
-    branch = models.ManyToManyField(Branch, related_name='statispayment')
+    branch = models.ManyToManyField(Branch, related_name='staticpayment')
     sp_created_at = models.DateTimeField(auto_now_add=True) 
     class Meta:
         db_table = 'qrjump_static_payments_storage'
