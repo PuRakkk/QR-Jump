@@ -36,10 +36,10 @@ SECRET_KEY = 'django-insecure-^11zc703ec=i%zisn(bnnc483f362)x_6-ztxjam&neo3c_b42
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["99e9-118-67-205-137.ngrok-free.app", "127.0.0.1"]
+ALLOWED_HOSTS = ["a7e3-118-67-205-137.ngrok-free.app", "127.0.0.1"]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://99e9-118-67-205-137.ngrok-free.app',  # Add all active ngrok URLs
+    'https://a7e3-118-67-205-137.ngrok-free.app',  # Add all active ngrok URLs
 ]
 
 
@@ -178,5 +178,5 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 } 
 
-LOGIN_URL = '/defualt_login/'
+LOGIN_URL = '/check_login/'
 LOGIN_REDIRECT_URL = '/usd-transaction/'

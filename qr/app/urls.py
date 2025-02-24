@@ -33,9 +33,9 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    path('', views.home, name='index'),
+    path('', views.home, name='home'),
     path('check_login/', views.check_login, name='check_login'),
-    path('defualt-login/', views.defualt_login, name='defualt-login'),
+    path('success-pin/',views.success_pin, name='success-pin'),
     path('select-branchs/', login_required(views.select_branchs), name='select_branchs'),
     path('usd-transaction/', login_required(views.usd_transaction_page), name='usd_transaction_page'),
     path('storing-credentials/', login_required(views.storing_credentials), name='storing_credentials'),

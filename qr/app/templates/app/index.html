@@ -16,7 +16,7 @@
     <div class="container">
         <div class="username_timestamp">
             <div id="user-info-transaction">Use in TG Bot</div>
-            <div class="time-stamp" id="datetime-index">{{ server_time }}</div>
+            <div class="time-stamp" id="datetime-index" style="color: black; font-weight: bold;">{{ server_time }}</div>
         </div>
         <form action="{% url 'check_login' %}" method="POST">
             {% csrf_token %}

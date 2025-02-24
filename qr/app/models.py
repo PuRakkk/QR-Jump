@@ -134,9 +134,10 @@ class BotUsersStorage(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     visiter = models.CharField(max_length=20, null=True)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
+    message_id = models.CharField(max_length=20, null=False, default='messsage_id_123')
 
     class Meta:
         db_table = 'qrjump_users_storage'
     
     def __str__(self):
-        return f"{self.telegram_id} - {self.first_name} - {self.last_name} - {self.full_name} - {self.username} - {self.telegram_language} - {self.user_choose_language} - {self.user_status} - {self.created_at} - {self.visiter} - {self.phone_number} - {self.user_pin}"
+        return f"{self.telegram_id} - {self.first_name} - {self.last_name} - {self.full_name} - {self.username} - {self.telegram_language} - {self.user_choose_language} - {self.user_status} - {self.created_at} - {self.visiter} - {self.phone_number} - {self.user_pin} - {self.message_id}"

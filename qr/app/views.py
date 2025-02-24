@@ -104,6 +104,8 @@ def check_login(request):
                                     user, created = User.objects.get_or_create(username=telegram_username)
                                     login(request, user)
                                     return redirect(f'/select-branchs/?telegram_username={telegram_username}&staff_user_pin={staff_user_pin}') 
+                                elif not staff_user_pin and staff_status is True:
+                                    return render(request, 'app/setup-pin.html')
                         else:
                             error_message = "Your account is inactive. Please contact admin"
                     except requests.exceptions.RequestException as e:
@@ -115,6 +117,44 @@ def check_login(request):
                 print(f"Error: {str(e)}")
 
     return render(request, 'app/index.html', {'error_message': error_message})
+
+def success_pin(request):
+    error_message = None
+    if request.method == 'POST':
+        telegram_username = request.POST.get('telegram_username')
+        telegram_id = request.POST.get('telegram_id')
+        pin = request.POST.get('pin')
+
+        if not pin:
+            error_message = "Please input PIN"
+        elif len(pin) < 4:
+            error_message = "PIN must be at least 4 characters long"
+        elif not telegram_username or not telegram_id:
+            error_message = "Please use Telegram Bot"
+        else:
+            try:
+                access_token = request.session.get('access_token')
+                print("Access Token:",access_token)
+                api = f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_id={telegram_id}"
+
+                headers = {
+                    'Authorization': f'Bearer {access_token}',
+                    'Content-Type': 'application/json'
+                }
+                
+                data = {
+                    'staff_user_pin':pin
+                }
+
+                response = requests.put(api, json=data ,headers=headers)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    return render(request, 'app/success-pin.html')
+
+            except requests.exceptions.RequestException as e:                
+                error_message = f"Connection Error"
+    return render(request, 'app/setup-pin.html', {'error_message': error_message})
 
 def select_branchs(request):
     telegram_username = request.GET.get('telegram_username')
@@ -181,10 +221,6 @@ def select_branchs(request):
 
     except requests.exceptions.RequestException as e:
         return HttpResponse(f"Error fetching staff information: {str(e)}", status=500)
-
-def defualt_login(request):
-    
-    return render(request, 'app/defualt-login.html')
 
 def storing_credentials(request):
     refresh_token = request.session.get('refresh_token')
@@ -516,7 +552,6 @@ def aba_qr_generate(request, method, amount, currency):
     REQ_TIME = formatted_time
     TRAN_ID = formatted_time
     AMOUNT = amount
-    print("Amount",AMOUNT)
     CURRENCY = currency
     CONTINUE_SUCCESS_URL = success_url
     PAYMENT_OPTION = 'abapay'
@@ -534,7 +569,6 @@ def aba_qr_generate(request, method, amount, currency):
         'continue_success_url': CONTINUE_SUCCESS_URL,
         'hash': HASH,
     }
-    print("This is context:",context)
     return render (request, 'app/aba-qr-generate.html',context=context)
 
 def qr_generate(request, method, amount, currency):
@@ -806,7 +840,52 @@ class CompanyViewSet(viewsets.ModelViewSet):
         - `https://ezzecore1.mobi:444/api/companies/`:This is an example of how to create a company.
         """
         serializer = self.get_serializer(data=request.data)
+
+        username = request.data.get('com_email')
+        password = request.data.get('com_password')
+
+        if not username and not password:
+            return Response({
+                    "success": False,
+                    "code": 400,
+                    "message": "Staff_telegram_username are required.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         if serializer.is_valid():
+            hashed_pin = hashlib.sha256(password.encode('utf-8')).hexdigest()
+            base64_encoded_pin = base64.b64encode(hashed_pin.encode('utf-8')).decode('utf-8')
+
+            user = User.objects.create_user(
+                username=username,
+                password=base64_encoded_pin
+            )
+            user.is_staff = True
+
+            try:
+                per = [
+                    Permission.objects.get(codename='add_staff'),
+                    Permission.objects.get(codename='change_staff'),
+                    Permission.objects.get(codename='delete_staff'),
+                    Permission.objects.get(codename='view_staff'),
+                    Permission.objects.get(codename='view_branch'),
+                    Permission.objects.get(codename='add_transactionhistory'),
+                    Permission.objects.get(codename='view_transactionhistory'),
+                    Permission.objects.get(codename='add_branch'),
+                    Permission.objects.get(codename='delete_branch'),
+                    Permission.objects.get(codename='change_branch'),
+                    Permission.objects.get(codename='view_company'),
+                ]
+                user.user_permissions.add(*per)
+            except Permission.DoesNotExist:
+                return Response({
+                    'error': 'Permission not found.'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            user.save()
+
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+
             serializer.save()
             return Response({
                 "success": True,
@@ -1113,17 +1192,17 @@ class StaffViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            staff_user_pin = serializer.validated_data.get('staff_user_pin')
+            staff_user_pin = "12345"
             staff_telegram_username = serializer.validated_data.get('staff_telegram_username')
             staff_role = serializer.validated_data.get('staff_position')
 
             print("User role",staff_role)
 
-            if not staff_user_pin or not staff_telegram_username:
+            if not staff_telegram_username:
                 return Response({
                     "success": False,
                     "code": 400,
-                    "message": "staff_user_pin and staff_telegram_username are required.",
+                    "message": "Staff_telegram_username are required.",
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             hashed_pin = hashlib.sha256(staff_user_pin.encode('utf-8')).hexdigest()
@@ -1133,7 +1212,7 @@ class StaffViewSet(viewsets.ModelViewSet):
                 username=staff_telegram_username,
                 password=base64_encoded_pin
             )
-            user.is_staff = False
+            user.is_staff = True
 
             try:
                 if staff_role == "staff":
@@ -1178,7 +1257,7 @@ class StaffViewSet(viewsets.ModelViewSet):
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
 
-            serializer.save(staff_status=False)
+            serializer.save(staff_status=True)
 
             return Response({
                 "success": True,
@@ -1233,15 +1312,16 @@ class StaffViewSet(viewsets.ModelViewSet):
         staff_name = request.query_params.get('staff_name', None)
         staff_id = request.query_params.get('staff_id', None)
         staff_username = request.query_params.get('staff_telegram_username', None)
+        staff_telegram_id = request.query_params.get('staff_telegram_id', None)
 
-        if not staff_id and not staff_name and not staff_username:
+        if not staff_id and not staff_name and not staff_username and not staff_telegram_id:
             return Response({
                 "success": False,
                 "code": 400,
                 "message": "No params provided"
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        staff = Staff.objects.filter(Q(staff_id=staff_id) | Q(staff_name=staff_name) | Q(staff_telegram_username=staff_username)).first()
+        staff = Staff.objects.filter(Q(staff_id=staff_id) | Q(staff_name=staff_name) | Q(staff_telegram_username=staff_username) | Q(staff_telegram_id=staff_telegram_id)).first()
 
         if not staff:
             return Response({
