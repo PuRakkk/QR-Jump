@@ -79,10 +79,9 @@ class BankCredentials(models.Model):
     BANK_CHOICES = [
         ('aba', 'ABA Bank'),
         ('acleda', 'Acleda Bank'),
-        ('wing', 'Wing Bank'),
+        ('wing', 'Wing Bank'), 
         ('bakong', 'Bakong Bank'),
     ]
-
     branch = models.ManyToManyField(Branch, related_name='bank_credentials')
     bank_name = models.CharField(max_length=50, choices=BANK_CHOICES)
     api_key = EncryptedTextField(models.CharField(max_length=255))
@@ -115,7 +114,7 @@ class SuperAdmin(models.Model):
 
 class StaticPayment(models.Model):
     payment_type = models.CharField(max_length=150)
-    branch = models.ManyToManyField(Branch, related_name='staticpayment')
+    branch = models.ManyToManyField(Branch, related_name='statispayment')
     sp_created_at = models.DateTimeField(auto_now_add=True) 
     class Meta:
         db_table = 'qrjump_static_payments_storage'

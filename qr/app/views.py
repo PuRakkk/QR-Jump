@@ -8,8 +8,8 @@ from io import BytesIO
 from django.views.decorators.csrf import csrf_protect
 import logging
 from rest_framework import viewsets
-from .models import Company, Branch, Staff, TransactionHistory, StaticPayment, BotUsersStorage
-from .serializers import CompanySerializer, BranchSerializer, StaffSerializer, TransactionHistorySerializer, StaticPaymentSerializer, BotUsersStorageSerializer
+from .models import Company, Branch, Staff, TransactionHistory, StaticPayment, BotUsersStorage, BankCredentials
+from .serializers import CompanySerializer, BranchSerializer, StaffSerializer, TransactionHistorySerializer, StaticPaymentSerializer, BotUsersStorageSerializer, BankCredentialsSerializer
 from django_filters import rest_framework as filters
 from rest_framework import status, viewsets
 from rest_framework.response import Response
@@ -31,6 +31,14 @@ import hmac
 import json
 
 logger = logging.getLogger(__name__)
+
+TELEGRAM_BOT_TOKEN = "7301149253:AAFN0bx9UjNYrHNHvcqaB3PeNaxnUeySzA8"
+
+def send_telegram_message(chat_id, message, parse_mode):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": chat_id, "text": message, "parse_mode": "HTML"}
+    response = requests.post(url, json=payload)
+    return response.json()
 
 def check_login(request):
     error_message = None
@@ -1195,14 +1203,20 @@ class StaffViewSet(viewsets.ModelViewSet):
             staff_user_pin = "12345"
             staff_telegram_username = serializer.validated_data.get('staff_telegram_username')
             staff_role = serializer.validated_data.get('staff_position')
-
-            print("User role",staff_role)
+            branch_ids = request.data.get('branch_ids', [])
 
             if not staff_telegram_username:
                 return Response({
                     "success": False,
                     "code": 400,
                     "message": "Staff_telegram_username are required.",
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not branch_ids:
+                return Response({
+                    "success": False,
+                    "code": 400,
+                    "message": "branch_ids are required.",
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             hashed_pin = hashlib.sha256(staff_user_pin.encode('utf-8')).hexdigest()
@@ -1251,6 +1265,23 @@ class StaffViewSet(viewsets.ModelViewSet):
                 return Response({
                     'error': 'Permission not found.'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            try:
+                bot_user = BotUsersStorage.objects.get(username=staff_telegram_username)
+                if bot_user.message_id:
+                    bot_user.user_status = "Active"
+                    bot_user.save()
+                    if bot_user.user_choose_language == "English":
+                        message = f"Congratulations <strong>{staff_telegram_username}</strong>, you have been approved. You can use QR Jump now."
+                    elif bot_user.user_choose_language == "Khmer":
+                        message = f"សូមអបអរសាទរ <strong>{staff_telegram_username}</strong> គណនរបស់អ្នកត្រូវបានដាក់អោយដំណើរការ។ អ្នកអាចប្រើ QR Jump ឥឡូវនេះបាន។"
+                    send_telegram_message(bot_user.message_id, message, parse_mode='HTML')
+            except BotUsersStorage.DoesNotExist:
+                return Response({
+                    "success": False,
+                    "code": 404,
+                    "message": "Bot user not found. Cannot send Telegram message."
+                }, status=status.HTTP_404_NOT_FOUND)
 
             user.save()
 
@@ -1259,11 +1290,25 @@ class StaffViewSet(viewsets.ModelViewSet):
 
             serializer.save(staff_status=True)
 
+            staff = Staff.objects.filter(Q(staff_telegram_username=staff_telegram_username)).first()
+            if branch_ids:
+                branch_ids = [int(branch_id) for branch_id in branch_ids.split(',')]    
+                branches = Branch.objects.filter(id__in=branch_ids) 
+
+                staff.branches.set(branches) 
+                staff.save()
+
             return Response({
-                "success": True,
-                "code": 200,
-                "message": "Staff Create successfully"
-            },status=status.HTTP_200_OK)
+                    "success": True,
+                    "code": 200,
+                    "message": "Staff and branches created successfully",
+                    "data": {
+                        "staff_id": staff.staff_id,
+                        "staff_name": staff.staff_name,
+                        "branches": [branch.br_kh_name for branch in branches]
+                    }
+                }, status=status.HTTP_200_OK)
+                
         return Response({
             "success": False,
             "code": 400,
@@ -1313,6 +1358,8 @@ class StaffViewSet(viewsets.ModelViewSet):
         staff_id = request.query_params.get('staff_id', None)
         staff_username = request.query_params.get('staff_telegram_username', None)
         staff_telegram_id = request.query_params.get('staff_telegram_id', None)
+        branch_ids = request.data.get('branch_ids', [])
+
 
         if not staff_id and not staff_name and not staff_username and not staff_telegram_id:
             return Response({
@@ -1336,10 +1383,34 @@ class StaffViewSet(viewsets.ModelViewSet):
         staff.save()
 
         if 'staff_status' in request.data:
+
             try:
                 staff_status_value = bool(int(request.data['staff_status']))
 
                 user = User.objects.filter(username=staff.staff_telegram_username).first()
+
+                try:
+                    if staff_status_value == 0:
+                        bot_user = BotUsersStorage.objects.get(username=staff_username)
+                        if bot_user.message_id:
+                            bot_user.user_status = "Inactive"
+                            bot_user.save()
+                    elif staff_status_value == 1:
+                        bot_user = BotUsersStorage.objects.get(username=staff_username)
+                        if bot_user.message_id:
+                            bot_user.user_status = "Active"
+                            bot_user.save()
+                            if bot_user.user_choose_language == "English":
+                                message = f"Congratulations <strong>{staff_username}</strong>, you have been approved. You can use QR Jump now."
+                            elif bot_user.user_choose_language == "Khmer":
+                                message = f"សូមអបអរសាទរ <strong>{staff_username}</strong> គណនរបស់អ្នកត្រូវបានដាក់អោយដំណើរការ។ អ្នកអាចប្រើ QR Jump ឥឡូវនេះបាន។"
+                            send_telegram_message(bot_user.message_id, message, parse_mode='HTML')
+                except BotUsersStorage.DoesNotExist:
+                    return Response({
+                        "success": False,
+                        "code": 404,
+                        "message": "User not found."
+                    }, status=status.HTTP_404_NOT_FOUND)
 
                 if user:
                     user.is_staff = staff_status_value
@@ -1446,6 +1517,14 @@ class StaffViewSet(viewsets.ModelViewSet):
                     "code": 500,
                     "message": "Permission not found for the given role"
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        staff = Staff.objects.filter(Q(staff_telegram_username=staff_username)).first()
+        if branch_ids:
+            branch_ids = [int(branch_id) for branch_id in branch_ids.split(',')]    
+            branches = Branch.objects.filter(id__in=branch_ids) 
+
+            staff.branches.set(branches) 
+            staff.save()
 
         return Response({
             "success": True,
@@ -1480,7 +1559,6 @@ class StaffViewSet(viewsets.ModelViewSet):
             user.delete()
 
         staff.delete()
-
         return Response({
             "success": True,
             "code": 200,
@@ -1553,8 +1631,6 @@ class AssignBranchesViewSet(viewsets.ModelViewSet):
         staff_name = request.query_params.get('staff_name', None)
         staff_id = request.query_params.get('staff_id', None)
         branch_ids = request.data.get('branch_ids', [])
-
-        print("This is branch:",branch_ids)
 
         if not staff_id and not staff_name:  
             return Response({
@@ -1799,7 +1875,6 @@ class StaticPaymentFilter(filters.FilterSet):
     class Meta:
         model = StaticPayment
         fields = ['payment_type','br_id','sp_created_at']
-
 
 class StaticPaymentViewSet(viewsets.ModelViewSet):
     queryset = StaticPayment.objects.all()

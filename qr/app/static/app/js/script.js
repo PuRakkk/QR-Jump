@@ -290,3 +290,13 @@ function goBackToTransactionPageFromHistoryPageIfNoTran() {
         window.location.href = '/usd-transaction';
 }
 
+function goBackToTransactionPageFromQrPage(currency) {
+    sessionStorage.removeItem("loading_done");
+    sessionStorage.removeItem("checkout_done");
+    if (currency === 'USD' || currency === 'usd') {
+        window.location.href = '/usd-transaction';
+    } else if (currency === 'KHR' || currency === 'khr') {
+        window.location.href = '/khr-transaction';
+    }
+}
+
