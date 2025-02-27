@@ -11,6 +11,9 @@ class BankCredentialsSerializer(serializers.ModelSerializer):
     class Meta:
         model = BankCredentials
         fields = ['bank_name', 'api_key', 'public_key', 'merchant_id', 'is_active', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'api_key': {'allow_blank': False, 'required': True, 'allow_null': False},
+        }
 
 class StaticPaymentSerializer(serializers.ModelSerializer):
     class Meta:

@@ -28,7 +28,8 @@
             {% csrf_token %}
             <input type="hidden" id="telegram_username" name="telegram_username">
             <input type="hidden" id="telegram_id" name="telegram_id">
-            <div class="bank-type">
+            <div class="bank-type {% if bank_credentials|length == 1 and payment_types|length == 0 %}single-bank{% else %}multi-bank{% endif %}">
+
                 <p class="bank-label">Select payment</p>
 
                 {% for bank_name, creds in bank_credentials.items %}
@@ -38,7 +39,7 @@
                 {% endfor %}
 
                 {% for payment_name, payment in payment_types.items %}
-                    <button type="button" class="payment-btn" onclick="refreshAccessToken(); redirectToQRPage('{{ payment_name }}', '{{ amount }}', '{{ currency }}');">
+                    <button type="button" style="justify-content: center;" class="payment-btn" onclick="refreshAccessToken(); redirectToQRPage('{{ payment_name }}', '{{ amount }}', '{{ currency }}');">
                         <span style="width: 80px; height: 80px; border-radius: 5px;">{{ payment_name|title }}</span>
                     </button>
                 {% endfor %}

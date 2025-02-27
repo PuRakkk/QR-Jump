@@ -28,7 +28,6 @@ from django.http import JsonResponse
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 import hmac
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +141,6 @@ def success_pin(request):
         else:
             try:
                 access_token = request.session.get('access_token')
-                print("Access Token:",access_token)
                 api = f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_id={telegram_id}"
 
                 headers = {
@@ -186,6 +184,7 @@ def select_branchs(request):
                 if branches:
                     com_id = branches[0].get('com_id', None)
                     branch_id = branches[0]['id']
+                    br_en_name = branches[0]['br_en_name']
                     bank_credentials = {}
                     payment_types = {}
                     
@@ -206,13 +205,18 @@ def select_branchs(request):
                     request.session['staff_id'] = staff_id
                     request.session['com_id'] = com_id
                     request.session['branch_id'] = branch_id
+                    request.session['br_en_name'] = br_en_name
                     request.session['bank_credentials'] = bank_credentials
                     request.session['payment_types'] = payment_types
-                    return render(request, 'app/usd-transaction.html')
+                    context = {
+                        'br_en_name':br_en_name
+                    }
+                    return render(request, 'app/usd-transaction.html', context=context)
                 
                 elif len(branches) > 1:
                     return render(request, 'app/select-branchs.html', {
                         'branches': branches,
+                        'br_en_name':br_en_name,
                         'staff_id': staff_id,
                         'com_id': com_id,
                         'telegram_username': telegram_username,
@@ -237,6 +241,7 @@ def storing_credentials(request):
     com_id = request.GET.get('com_id')
     telegram_username = request.GET.get('telegram_username')
     branch_id = request.GET.get('branch_id')
+    br_en_name = request.GET.get('br_en_name')
     payment_type = request.GET.get('payment_types')
     print("This is Payment Type:",payment_type)
 
@@ -300,6 +305,7 @@ def storing_credentials(request):
         request.session['com_id'] = com_id
         request.session['telegram_username'] = telegram_username
         request.session['branch_id'] = branch_id
+        request.session['br_en_name'] = br_en_name
         request.session['bank_credentials'] = bank_credentials
         request.session['payment_types'] = payment_types
 
@@ -357,6 +363,7 @@ def home(request):
 
 def khr_transaction_page(request):
     refresh_token = request.session.get('refresh_token')
+    br_en_name = request.session.get('br_en_name')
     if not refresh_token:
         return redirect('/')
 
@@ -377,11 +384,15 @@ def khr_transaction_page(request):
     except Exception as e:
         print(f"Error refreshing token: {str(e)}")
         return redirect('/')
+    context = {
+            'br_en_name':br_en_name
+        }
 
-    return render(request, "app/khr-transaction.html")
+    return render(request, "app/khr-transaction.html", context=context)
 
 def usd_transaction_page(request):
     refresh_token = request.session.get('refresh_token')
+    br_en_name = request.session.get('br_en_name')
     if not refresh_token:
         return redirect('/')
 
@@ -402,8 +413,12 @@ def usd_transaction_page(request):
     except Exception as e:
         print(f"Error refreshing token: {str(e)}")
         return redirect('/')
+    
+    context = {
+        'br_en_name':br_en_name
+    }
 
-    return render(request, "app/usd-transaction.html")
+    return render(request, "app/usd-transaction.html", context=context)
 
 def confirm_transaction(request):
     refresh_token = request.session.get('refresh_token')
@@ -543,9 +558,6 @@ def aba_qr_generate(request, method, amount, currency):
         return redirect('/')
     utc_now = datetime.now(pytz.utc)
     formatted_time = utc_now.strftime('%Y%m%d%H%M%S')
-    ret_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_callback/"
-    return_url = base64.b64encode(ret_url.encode()).decode()
-
     success_url = "https://ccfa-167-179-41-221.ngrok-free.app/payment_success/"
     bank_credentials = request.session.get('bank_credentials')
     for bank_name, creds in bank_credentials.items():
@@ -809,7 +821,6 @@ class CompanyViewSet(viewsets.ModelViewSet):
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             queryset = self.filter_queryset(self.get_queryset())
-
             if request.query_params and not queryset.exists():
                 return Response({
                     "success": False,
@@ -1232,7 +1243,10 @@ class StaffViewSet(viewsets.ModelViewSet):
                 if staff_role == "staff":
                     per = [
                         Permission.objects.get(codename='view_transactionhistory'),
-                        Permission.objects.get(codename='add_transactionhistory')
+                        Permission.objects.get(codename='add_transactionhistory'),
+                        Permission.objects.get(codename='add_staff'),
+                        Permission.objects.get(codename='view_staff'),
+
                     ]
                     user.user_permissions.add(*per)
                 elif staff_role == "manager":
@@ -1275,6 +1289,8 @@ class StaffViewSet(viewsets.ModelViewSet):
                         message = f"Congratulations <strong>{staff_telegram_username}</strong>, you have been approved. You can use QR Jump now."
                     elif bot_user.user_choose_language == "Khmer":
                         message = f"សូមអបអរសាទរ <strong>{staff_telegram_username}</strong> គណនរបស់អ្នកត្រូវបានដាក់អោយដំណើរការ។ អ្នកអាចប្រើ QR Jump ឥឡូវនេះបាន។"
+                    elif bot_user.user_choose_language is None:
+                        message = f"Congratulations <strong>{staff_telegram_username}</strong>, you have been approved. You can use QR Jump now."
                     send_telegram_message(bot_user.message_id, message, parse_mode='HTML')
             except BotUsersStorage.DoesNotExist:
                 return Response({
@@ -1401,9 +1417,11 @@ class StaffViewSet(viewsets.ModelViewSet):
                             bot_user.user_status = "Active"
                             bot_user.save()
                             if bot_user.user_choose_language == "English":
-                                message = f"Congratulations <strong>{staff_username}</strong>, you have been approved. You can use QR Jump now."
+                                message = f"Congratulations <strong>{staff_username}</strong>, you have been approved. You can use QR Jump now. Please use defualt with defualt PIN:12345"
                             elif bot_user.user_choose_language == "Khmer":
-                                message = f"សូមអបអរសាទរ <strong>{staff_username}</strong> គណនរបស់អ្នកត្រូវបានដាក់អោយដំណើរការ។ អ្នកអាចប្រើ QR Jump ឥឡូវនេះបាន។"
+                                message = f"សូមអបអរសាទរ <strong>{staff_username}</strong> គណនរបស់អ្នកត្រូវបានដាក់អោយដំណើរការ។ អ្នកអាចប្រើ QR Jump ឥឡូវនេះបាន។សូមប្រើប្រាស់លេខកូដ:12345"
+                            elif bot_user.user_choose_language is None:
+                                message = f"Congratulations <strong>{staff_username}</strong>, you have been approved. You can use QR Jump now. Please use defualt with defualt PIN:12345"
                             send_telegram_message(bot_user.message_id, message, parse_mode='HTML')
                 except BotUsersStorage.DoesNotExist:
                     return Response({
@@ -1960,7 +1978,104 @@ class StaticPaymentViewSet(viewsets.ModelViewSet):
             "data": []
         }, status=status.HTTP_200_OK)
     
+class BankCredentialsFilter(filters.FilterSet):
+    bank_name = filters.CharFilter(field_name='bank_name', lookup_expr='exact')
+    branch_ids = filters.CharFilter(field_name='branch_ids', lookup_expr='exact')
+    merchant_id = filters.NumberFilter(field_name='merchant_id', lookup_expr='exact') 
 
+    class Meta:
+        model = BankCredentials
+        fields = ['bank_name', 'branch_ids', 'merchant_id']
+
+class BankCredentialsViewSet(viewsets.ModelViewSet):
+    queryset = BankCredentials.objects.all()
+    serializer_class = BankCredentialsSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = BankCredentialsFilter
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()  
+        branch_ids = data.pop('branch_ids', []) 
+
+        new_branch_ids = []
+        for branch_id in branch_ids:
+            if isinstance(branch_id, str) and ',' in branch_id:
+                new_branch_ids.extend(int(id_) for id_ in branch_id.split(','))
+            else:
+                new_branch_ids.append(int(branch_id))
+
+        branch_ids = new_branch_ids
+
+        branches = Branch.objects.filter(id__in=branch_ids)
+        if len(branches) != len(branch_ids):
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "Some branch IDs are invalid",
+                "invalid_branch_ids": list(set(branch_ids) - set(branches.values_list('id', flat=True))),
+                "data": []
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(data=data)
+        if serializer.is_valid():
+            bank_credentials = serializer.save()
+            bank_credentials.branch.set(branches) 
+            return Response({
+                "success": True,
+                "code": 201,
+                "message": "Bank credentials created successfully.",
+                "data": serializer.data
+            }, status=status.HTTP_201_CREATED)
+        else:
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "Validation error",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfully retrieved Bank Credentials",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+    
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = BankCredentialsSerializer(instance, data=request.data, partial=True)  # Allow partial updates
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                "success": True,
+                "code": 200,
+                "message": "Successfully updated Bank Credentials",
+                "data": serializer.data  # No need to wrap in a list
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                "success": False,
+                "code": 400,
+                "message": "Validation error",
+                "errors": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+
+        return Response({
+            "success": True,
+            "code": 200,
+            "message": "Successfully deleted Bank Credentials",
+            "data": []
+        }, status=status.HTTP_200_OK)
+    
 class BotUsersStorageFilter(filters.FilterSet):
     telegram_id = filters.NumberFilter(field_name='telegram_id', lookup_expr='exact')
     first_name = filters.CharFilter(field_name='first_name', lookup_expr='exact')
@@ -2123,7 +2238,7 @@ class BotUsersStorageViewSet(viewsets.ModelViewSet):
                 "error": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def destroy(self, request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         try:
             username = request.query_params.get("username")
             first_name = request.query_params.get("first_name")

@@ -17,8 +17,10 @@
     <div class="tx_container">
         <div class="username_timestamp">
             <div id="user-info-transaction">Use in TG Bot</div>
-            <div class="time-stamp-transaction" id="datetime-index">{{ server_time }}</div>
+            <div class="time-stamp-transaction" style="font-size: 12px;padding-right: 3px;" id="datetime-index">{{ server_time }}</div>
+            <div class="branches" style="text-align: left; padding-bottom: -70px; color: black; font-weight: bold; font-size: 13px;">Branch:{{ br_en_name }}</div>
         </div>
+        
         <form class="logout-history" action="{% url 'logout_user' %}" method="POST">
             {% csrf_token %}
             <input type="hidden" name="telegram_id" value="{{ telegram_id }}">
@@ -37,7 +39,7 @@
                     <img src="{% static 'app/images/last-usa-logo.png' %}" alt="dollar-logo" style="width: 85px; height: 50px;
                     border-radius: 5px;">
                 </button>
-                <input class="input-usd-amount" type="text" id="usd-amount" name="amount" maxlength="12" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Enter Amount $" readonly>
+                <input class="input-usd-amount" style="font-size: x-large;" type="text" id="usd-amount" name="amount" maxlength="12" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Enter Amount $" readonly>
             </div>
     
             <div class="numpad_tx">

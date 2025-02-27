@@ -19,6 +19,7 @@
             <input type="hidden" id="telegram_id" name="telegram_id">
             <div id="user-info-transaction">Use in TG Bot</div>
             <div class="time-stamp-transaction" id="datetime-index">{{ server_time }}</div>
+            <div class="branches" style="text-align: left; padding-bottom: -70px; color: black; font-weight: bold; font-size: 13px;">Branch:{{ br_en_name }}</div>
         </div>
         <form class="logout-history" action="{% url 'logout_user' %}" method="POST">
             {% csrf_token %}
@@ -38,7 +39,7 @@
                     <img src="{% static 'app/images/cambodia-last-flag.png' %}" alt="riel-logo" style="width: 85px; height: 50px;
                     border-radius: 5px;">
                 </button>
-                <input class="input-khr-amount" type="text" id="khr-amount" name="amount" maxlength="12" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Enter Amount ៛" readonly>
+                <input class="input-khr-amount" style="font-size: x-large;" type="text" id="khr-amount" name="amount" maxlength="12" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Enter Amount ៛" readonly>
             </div>
 
             <div class="numpad_tx">

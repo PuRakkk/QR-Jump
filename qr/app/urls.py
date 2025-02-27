@@ -21,6 +21,7 @@ router.register(r'transactions', TransactionHistoryViewSet)
 router.register(r'assign-branches', AssignBranchesViewSet, basename='assign-branches')
 router.register(r'static-payment',StaticPaymentViewSet ,basename='static-payment')
 router.register(r'bot-users',BotUsersStorageViewSet, basename='bot-users')
+router.register(r'bank-credentials',BankCredentialsViewSet, basename='bank-credentials')
 
 
 schema_view = get_schema_view(
