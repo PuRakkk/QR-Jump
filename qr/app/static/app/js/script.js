@@ -178,16 +178,12 @@ function updateDateTime() {
     const options = { month: 'short', day: '2-digit', year: 'numeric' };
     const formattedDate = now.toLocaleDateString('en-US', options);
     
-    let hours = now.getHours();
+    const hours = now.getHours().toString().padStart(2, '0');
     const minutes = now.getMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
     
-    hours = hours % 12 || 12;
-    
-    const formattedDateTime = `${formattedDate} ${hours}:${minutes} ${ampm}`;
+    const formattedDateTime = `${formattedDate} ${hours}:${minutes}`;
 
     document.getElementById("datetime-index").innerText = formattedDateTime;
-
 }
 
 setInterval(updateDateTime, 1000);
