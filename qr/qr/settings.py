@@ -36,9 +36,16 @@ SECRET_KEY = 'django-insecure-^11zc703ec=i%zisn(bnnc483f362)x_6-ztxjam&neo3c_b42
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['ezzecore1.mobi','178.128.17.107','localhost','127.0.0.1']
+ALLOWED_HOSTS = ["fe43-118-67-205-137.ngrok-free.app", "127.0.0.1"]
 
-CSRF_TRUSTED_ORIGINS = ['https://ezzecore1.mobi:8446']
+CSRF_TRUSTED_ORIGINS = [
+    'https://fe43-118-67-205-137.ngrok-free.app',  # Add all active ngrok URLs
+]
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",  # Change this to your frontend domain
+]
 
 # Application definition
 

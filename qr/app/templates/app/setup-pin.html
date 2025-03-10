@@ -24,7 +24,7 @@
             <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
             <input type="hidden" id="telegram_username" name="telegram_username">
             <input type="hidden" id="telegram_id" name="telegram_id">
-            <input type="password" class="defualt-input" id="pin" name="pin" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Enter PIN" inputmode="none" autofocus>
+            <input type="password" class="defualt-input" id="pin" name="pin" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '');" placeholder="Enter New PIN" inputmode="none" autofocus>
 
             {% if error_message %} 
             <p style="color: red; padding: 0px; margin-bottom: -30px;">{{ error_message }}</p>

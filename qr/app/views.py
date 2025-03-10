@@ -312,8 +312,8 @@ def storing_credentials(request):
         request.session['payment_types'] = payment_types
 
     context = {
-            'br_en_name':br_en_name
-        }
+        'br_en_name':br_en_name
+    }
 
     return render(request, 'app/usd-transaction.html', context=context)
 
@@ -365,8 +365,27 @@ def update_session(request):
     return HttpResponse(message)
 
 def home(request):
-    
-    return render(request, 'app/index.html')
+    telegram_username = request.GET.get('telegram_username')
+    staff = None
+    staff_user_pin = None
+    label = None
+
+    if telegram_username:
+        try:
+            staff = Staff.objects.get(staff_telegram_username=telegram_username)
+            staff_user_pin = staff.staff_user_pin
+        except Staff.DoesNotExist:
+            staff_user_pin = None
+
+    context = {
+        'label': "Enter your PIN",
+    }
+    if staff_user_pin is None:
+        context = {
+            'label': "Enter Admin PIN",
+        }
+    print("Staff PIN:", staff_user_pin)
+    return render(request, 'app/index.html', context=context)
 
 def khr_transaction_page(request):
     refresh_token = request.session.get('refresh_token')
@@ -503,7 +522,10 @@ def check_token_status(request):
 
 def logout_user(request):
     request.session.flush()
-    return redirect('/')
+    context = {
+        'label': "Enter your PIN",
+    }
+    return render(request,'app/index.html' ,context=context)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdminUser])
@@ -1584,6 +1606,10 @@ class StaffViewSet(viewsets.ModelViewSet):
             user.delete()
 
         staff.delete()
+        bot_user = BotUsersStorage.objects.get(username=staff_username)
+        if bot_user:
+            bot_user.delete()
+
         return Response({
             "success": True,
             "code": 200,

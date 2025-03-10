@@ -19,10 +19,10 @@
             <p class="format">Date</p>
             <p class="format">Currency</p>
             <p class="format">Amount</p>
-            <p class="format-value" id="datetime-index">{{ server_time }}</p>
+            <p class="format-value datetime" id="datetime-index">{{ server_time }}</p>
             <p class="format-value">{{ currency }}</p>
             <p class="format-value">{{ amount }}</p>           
-        </div>
+        </div>        
 
         <form action="" method="POST">
             {% csrf_token %}
@@ -30,7 +30,7 @@
             <input type="hidden" id="telegram_id" name="telegram_id">
             <div class="bank-type {% if bank_credentials|length == 1 and payment_types|length == 0 %}single-bank{% else %}multi-bank{% endif %}">
 
-                <p class="bank-label">Select payment</p>
+                <p class="bank-label">Get QR</p>
 
                 {% for bank_name, creds in bank_credentials.items %}
                     <button type="button" class="bank-btn" onclick="refreshAccessToken(); redirectToQRPage('{{ bank_name }}', '{{ amount }}', '{{ currency }}');">
