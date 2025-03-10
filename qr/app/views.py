@@ -31,7 +31,7 @@ import hmac
 
 logger = logging.getLogger(__name__)
 
-TELEGRAM_BOT_TOKEN = "7301149253:AAFN0bx9UjNYrHNHvcqaB3PeNaxnUeySzA8"
+TELEGRAM_BOT_TOKEN = "7659326826:AAEUrUmsC0sbl92zR8LDC7vzBOyY9ULCgV4"
 
 #TestingGit
 
@@ -63,7 +63,7 @@ def check_login(request):
                 hashed_pass = hashlib.sha256(user_pass.encode('utf-8')).hexdigest()
                 password = base64.b64encode(hashed_pass.encode('utf-8')).decode('utf-8')
 
-                api = "http://127.0.0.1:8000/api/v1/token/"
+                api = "https://ezzecore1.mobi:8446/api/v1/token/"
 
                 data = {
                     'username':telegram_username,
@@ -80,7 +80,7 @@ def check_login(request):
                     request.session['refresh_token'] = refresh_token
                     request.session.save()
                     try:
-                        api = f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_username={telegram_username}"
+                        api = f"https://ezzecore1.mobi:8446/api/v1/staff/?staff_telegram_username={telegram_username}"
 
                         data = {
                             'staff_telegram_id': telegram_id,}
@@ -95,7 +95,7 @@ def check_login(request):
                         error_message = f"Error fetching staff information: {str(e)}"
 
                     try:
-                        api = f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_username={telegram_username}"
+                        api = f"https://ezzecore1.mobi:8446/api/v1/staff/?staff_telegram_username={telegram_username}"
                          
                         headers = {
                              'Authorization': f'Bearer {access_token}',
@@ -143,7 +143,7 @@ def success_pin(request):
         else:
             try:
                 access_token = request.session.get('access_token')
-                api = f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_id={telegram_id}"
+                api = f"https://ezzecore1.mobi:8446/api/v1/staff/?staff_telegram_id={telegram_id}"
 
                 headers = {
                     'Authorization': f'Bearer {access_token}',
@@ -173,7 +173,7 @@ def select_branchs(request):
         return redirect('/')
 
     try:
-        api = f"http://127.0.0.1:8000/api/v1/staff/?staff_telegram_username={telegram_username}"
+        api = f"https://ezzecore1.mobi:8446/api/v1/staff/?staff_telegram_username={telegram_username}"
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get(api, headers=headers)
 
@@ -250,7 +250,7 @@ def storing_credentials(request):
     bank_credentials = {}
     payment_types = {}
     try:
-        api = f"http://127.0.0.1:8000/api/v1/staff/?branches={branch_id}"
+        api = f"https://ezzecore1.mobi:8446/api/v1/staff/?branches={branch_id}"
         headers = {'Authorization': f'Bearer {access_token}'}
         response = requests.get(api, headers=headers)
 
@@ -282,7 +282,7 @@ def storing_credentials(request):
     except Branch.DoesNotExist:
         return redirect('/')
 
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    api = "https://ezzecore1.mobi:8446/api/v1/token/refresh/"
     data = {'refresh': refresh_token}
 
     try:
@@ -311,7 +311,11 @@ def storing_credentials(request):
         request.session['bank_credentials'] = bank_credentials
         request.session['payment_types'] = payment_types
 
-    return render(request, 'app/usd-transaction.html')
+    context = {
+            'br_en_name':br_en_name
+        }
+
+    return render(request, 'app/usd-transaction.html', context=context)
 
 def update_session(request):
     message = None
@@ -326,6 +330,7 @@ def update_session(request):
         exp_timestamp = decoded_token.get('exp')
         if not exp_timestamp:
             return redirect('/')
+        
 
         exp_time = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
         remaining_time = (exp_time - datetime.now(timezone.utc)).total_seconds()
@@ -339,7 +344,7 @@ def update_session(request):
         print(f"{str(e)}")
         return redirect('/')
 
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    api = "https://ezzecore1.mobi:8446/api/v1/token/refresh/"
     data = {'refresh': refresh_token}
 
     try:
@@ -369,7 +374,7 @@ def khr_transaction_page(request):
     if not refresh_token:
         return redirect('/')
 
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    api = "https://ezzecore1.mobi:8446/api/v1/token/refresh/"
     data = {'refresh': refresh_token}
 
     try:
@@ -398,7 +403,7 @@ def usd_transaction_page(request):
     if not refresh_token:
         return redirect('/')
 
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    api = "https://ezzecore1.mobi:8446/api/v1/token/refresh/"
     data = {'refresh': refresh_token}
 
     try:
@@ -429,7 +434,7 @@ def confirm_transaction(request):
     if not refresh_token:
         return redirect('/')
 
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    api = "https://ezzecore1.mobi:8446/api/v1/token/refresh/"
     data = {'refresh': refresh_token}
 
     try:
@@ -465,7 +470,7 @@ def check_token_status(request):
         return JsonResponse({"redirect_required": True})
 
     # try:
-    #     api = "http://127.0.0.1:8000/api/v1/staff/"
+    #     api = "https://ezzecore1.mobi:8446/api/v1/staff/"
 
     #     headers = {
     #         'Authorization': f'Bearer {access_token}'
@@ -541,7 +546,7 @@ def aba_qr_generate(request, method, amount, currency):
     if not refresh_token:
         return redirect('/')
 
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    api = "https://ezzecore1.mobi:8446/api/v1/token/refresh/"
     data = {'refresh': refresh_token}
 
     try:
@@ -598,7 +603,7 @@ def qr_generate(request, method, amount, currency):
     if not refresh_token:
         return redirect('/')
 
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    api = "https://ezzecore1.mobi:8446/api/v1/token/refresh/"
     data = {'refresh': refresh_token}
 
     try:
@@ -637,7 +642,7 @@ def qr_generate_page(request, method, amount, currency):
     if not refresh_token:
         return redirect('/')
 
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    api = "https://ezzecore1.mobi:8446/api/v1/token/refresh/"
     data = {'refresh': refresh_token}
 
     try:
@@ -671,7 +676,7 @@ def qr_generate_page(request, method, amount, currency):
             transaction_id = str(datetime.now().strftime("%Y%m%d%H%M%S"))
             transaction_datetime = datetime.now().strftime("%Y%m%d%H%M%S")
 
-            api = ("http://127.0.0.1:8000/api/v1/transactions/")
+            api = ("https://ezzecore1.mobi:8446/api/v1/transactions/")
 
             data = {
                 'th_id': transaction_id,
@@ -710,7 +715,7 @@ def transaction_history(request):
     if not refresh_token:
         return redirect('/')
 
-    api = "http://127.0.0.1:8000/api/v1/token/refresh/"
+    api = "https://ezzecore1.mobi:8446/api/v1/token/refresh/"
     data = {'refresh': refresh_token}
 
     try:
@@ -732,7 +737,7 @@ def transaction_history(request):
         
         if telegram_id:
             try:
-                api_url = f"http://127.0.0.1:8000/api/v1/transactions/?th_telegram_id={telegram_id}"
+                api_url = f"https://ezzecore1.mobi:8446/api/v1/transactions/?th_telegram_id={telegram_id}"
                 headers = {
                     'Authorization': f'Bearer {new_access_token}',
                 }
@@ -804,8 +809,8 @@ class CompanyViewSet(viewsets.ModelViewSet):
         - `com_email` (str): Filter by partial or full email.
         - `com_contact` (str): Filter by partial or full contact info.
         - `com_status` (bool): Filter by true/false that mean active or inactive status.
-        - `https://ezzecore1.mobi:444/api/companies/`:This is example of how to fetch all companies.
-        - `https://ezzecore1.mobi:444/api/companies/?com_name=Company`:This is an example of how to fetch a specific company.
+        - `https://ezzecore1.mobi:8446/api/companies/`:This is example of how to fetch all companies.
+        - `https://ezzecore1.mobi:8446/api/companies/?com_name=Company`:This is an example of how to fetch a specific company.
 
         Returns:
         - `200 OK`: A list of companies.
@@ -858,7 +863,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
         - `telegram_id`: Telegram ID of the company owner.
         - `telegram_username`: Telegram username of the company owner.
         - `com_password`: Password of the company.
-        - `https://ezzecore1.mobi:444/api/companies/`:This is an example of how to create a company.
+        - `https://ezzecore1.mobi:8446/api/companies/`:This is an example of how to create a company.
         """
         serializer = self.get_serializer(data=request.data)
 
@@ -958,7 +963,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
         Query Parameters:
         - `com_id`:ID of company to update.
         - `com_name`:You can also update by using the name of company.
-        - `https://ezzecore1.mobi:444/api/companeis/?com_id`: Here is the example.
+        - `https://ezzecore1.mobi:8446/api/companeis/?com_id`: Here is the example.
         
         """
         com_name = request.query_params.get('com_name', None)

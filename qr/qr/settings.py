@@ -34,18 +34,11 @@ if not FIELD_ENCRYPTION_KEY:
 SECRET_KEY = 'django-insecure-^11zc703ec=i%zisn(bnnc483f362)x_6-ztxjam&neo3c_b42'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ["441c-118-67-205-137.ngrok-free.app", "127.0.0.1"]
+ALLOWED_HOSTS = ['ezzecore1.mobi','178.128.17.107','localhost','127.0.0.1']
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://441c-118-67-205-137.ngrok-free.app',  # Add all active ngrok URLs
-]
-
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",  # Change this to your frontend domain
-]
+CSRF_TRUSTED_ORIGINS = ['https://ezzecore1.mobi:8446']
 
 # Application definition
 
@@ -118,14 +111,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ezzeqr_db',
-        'USER': 'PuRak',
-        'PASSWORD': 'chessmandb987', 
+        'USER': 'purak',
+        'PASSWORD': 'chessmandb987',
         'HOST': 'localhost',
         'PORT': '5432',
     }
 }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -161,10 +152,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
+# STATIC_URL = '/static/'
+# MEDIA_URL = '/media/'
+
+# # Root directory for collected static files (used in production with `collectstatic`)
+# STATIC_ROOT = '/var/www/ezzeteam/qrjump/static/'
+# MEDIA_ROOT = '/var/www/ezzeteam/qrjump/media/'
+
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -172,7 +169,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
