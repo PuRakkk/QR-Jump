@@ -34,7 +34,7 @@ if not FIELD_ENCRYPTION_KEY:
 SECRET_KEY = 'django-insecure-^11zc703ec=i%zisn(bnnc483f362)x_6-ztxjam&neo3c_b42'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["6cb2-167-179-41-72.ngrok-free.app", "127.0.0.1"]
 
@@ -118,14 +118,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ezzeqr_db',
-        'USER': 'PuRak',
-        'PASSWORD': 'chessmandb987', 
+        'USER': 'purak',
+        'PASSWORD': 'chessmandb987',
         'HOST': 'localhost',
         'PORT': '5432',
     }
 }
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -161,10 +159,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
+# STATIC_URL = '/static/'
+# MEDIA_URL = '/media/'
+
+# # Root directory for collected static files (used in production with `collectstatic`)
+# STATIC_ROOT = '/var/www/ezzeteam/qrjump/static/'
+# MEDIA_ROOT = '/var/www/ezzeteam/qrjump/media/'
+
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
