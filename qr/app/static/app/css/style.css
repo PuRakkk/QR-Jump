@@ -1056,7 +1056,7 @@ p.error {
 @media (max-width: 350px) {
     
     .logout-history {
-        margin-top: -20px;
+        margin-top: -75px;
         grid-template-columns: 1fr; 
     }
     .format{
