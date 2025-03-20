@@ -468,36 +468,35 @@ p{
     margin-bottom: 15px;
 }
 
-.details{
+.details {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px 15px;
+    grid-template-columns: auto 1fr; /* Two columns: labels and values */
+     /* Space between rows and columns */
     max-width: 100%;
-    margin-left: 20px;
-    margin-right: 20px;
-    margin-top: 30px;
-    margin-bottom: 30px;
+    margin: 30px 20px; /* Shorthand for margin-top, right, bottom, left */
     padding: 20px;
     background-color: #b3deff;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     font-family: Arial, sans-serif;
+    align-items: center; /* Align items vertically */
+    margin-bottom: 50px;
 }
 
 .format {
     font-size: 20px;
     color: #006aff;
     font-weight: bold;
-    text-align: center;
+    text-align: left; /* Align text to the left */
 }
 
 .format-value {
     font-size: 16px;
     color: rgb(0, 0, 0);
-    font-weight: normal;
-    text-align: center;
     font-weight: bold;
+    text-align: right; /* Align values to the left */
 }
+
 
 #datetime {
     font-size: 18px;

@@ -126,7 +126,7 @@ class BotUsersStorage(models.Model):
     first_name = models.CharField(max_length=100, null=True, blank=True)
     last_name = models.CharField(max_length=100, null=True, blank=True)
     full_name = models.CharField(max_length=100, null=True, blank=True)
-    username = models.CharField(unique=True, null=False, max_length=100)
+    telegram_username = models.CharField(unique=True, null=False, max_length=100)
     telegram_language = models.CharField(max_length=10, null=False)
     user_choose_language = models.CharField(max_length=20, null=True, blank=True)
     user_status = models.CharField(max_length=50, null=False)
