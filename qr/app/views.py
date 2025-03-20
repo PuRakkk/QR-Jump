@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_BOT_TOKEN = "7659326826:AAEUrUmsC0sbl92zR8LDC7vzBOyY9ULCgV4"
 
-#TestingGit
+#TestingGit Latest
 
 def send_telegram_message(chat_id, message, parse_mode):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
